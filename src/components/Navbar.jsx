@@ -1,38 +1,23 @@
 import React from "react";
-import {
-  Navbar,
-  Nav,
-  Container,
-  Form,
-  FormControl,
-  Button,
-} from "react-bootstrap";
-import logo from "../img/logo.png"; 
+import { Navbar, Nav, Container, Form, FormControl } from "react-bootstrap";
+import { Link } from "react-router-dom";
+import { FiUser, FiShoppingCart } from "react-icons/fi";
+import "../style/NavBar.css"; 
 
 function NavBar() {
   return (
     <Navbar bg="warning" expand="lg" className="py-2 shadow-sm">
       <Container>
-        {/* Logo + Brand */}
+        {/* Brand chỉ chữ */}
         <Navbar.Brand
-          href="#"
-          className="fw-bold text-dark d-flex align-items-center"
+          as={Link}
+          to="/"
+          className="brand-text fw-bold"
         >
-          <img
-            src={logo}
-            alt="MorningFruit logo"
-            className="me-2"
-            style={{
-              height: "35px", 
-              width: "auto",  
-              objectFit: "contain", 
-            }}
-          />
           FreshFruits
         </Navbar.Brand>
 
         <Navbar.Toggle aria-controls="basic-navbar-nav" />
-
         <Navbar.Collapse id="basic-navbar-nav">
           {/* Ô tìm kiếm */}
           <Form className="d-flex mx-auto my-2 my-lg-0 w-50">
@@ -41,25 +26,15 @@ function NavBar() {
               placeholder="Tìm kiếm sản phẩm..."
               className="me-2"
             />
-        
           </Form>
 
-          {/* Menu */}
+          {/* Menu với icon */}
           <Nav className="ms-auto fw-semibold">
-            <Nav.Link href="#" className="text-dark mx-2">
-              Trang chủ
+            <Nav.Link as={Link} to="#" className="text-dark mx-2 fs-4">
+              <FiUser />
             </Nav.Link>
-            <Nav.Link href="#" className="text-dark mx-2">
-              Trái cây Việt Nam
-            </Nav.Link>
-            <Nav.Link href="#" className="text-dark mx-2">
-              Nhập khẩu
-            </Nav.Link>
-            <Nav.Link href="#" className="text-dark mx-2">
-              Quà tặng
-            </Nav.Link>
-            <Nav.Link href="#" className="text-dark mx-2">
-              Liên hệ
+            <Nav.Link as={Link} to="#" className="text-dark mx-2 fs-4">
+              <FiShoppingCart />
             </Nav.Link>
           </Nav>
         </Navbar.Collapse>

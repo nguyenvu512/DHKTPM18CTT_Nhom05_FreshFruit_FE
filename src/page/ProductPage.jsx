@@ -6,9 +6,8 @@ import Footer from "../components/Footer";
 function ProductPage() {
   return (
     <>
-      <NavBar></NavBar>
+      
       <ProductList />
-      <Footer></Footer>
       </>
   );
 }

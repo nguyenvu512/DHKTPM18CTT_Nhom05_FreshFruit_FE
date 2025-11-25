@@ -30,7 +30,7 @@ function NavBar() {
 
           {/* Menu với icon */}
           <Nav className="ms-auto fw-semibold">
-            <Nav.Link as={Link} to="#" className="text-dark mx-2 fs-4">
+            <Nav.Link as={Link} to="/admin" className="text-dark mx-2 fs-4">
               <FiUser />
             </Nav.Link>
             <Nav.Link as={Link} to="#" className="text-dark mx-2 fs-4">

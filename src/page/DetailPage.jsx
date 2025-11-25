@@ -12,8 +12,7 @@ function DetailPage() {
   if (!product) return <div className="text-center mt-4">Không có dữ liệu sản phẩm</div>;
 
   return (
-    <>
-    <NavBar></NavBar>
+   
     <div className="container mt-5">
        
       <div className="row">
@@ -86,10 +85,11 @@ function DetailPage() {
         <div className="mt-5">
           <h4 className="text-warning">Mô tả sản phẩm</h4>
           <p>{product.description}</p>
+          <p>{product.origin}</p>
         </div>
       )}
     </div>
-    </>
+    
   );
 }
 

@@ -12,7 +12,7 @@ function ImageSlider() {
   ];
 
   return (
-    <Container className="my-4"> {/* ✅ Thêm container để căn giữa và cách đều 2 lề */}
+    <Container className="my-4">
       <Carousel fade interval={3000}>
         {images.map((img, index) => (
           <Carousel.Item key={index}>
@@ -20,7 +20,7 @@ function ImageSlider() {
               className="d-block w-100 rounded-3 shadow-sm"
               src={img.src}
               style={{
-                height: "400px",
+                height: "100%",
                 objectFit: "cover",
               }}
               alt={`Slide ${index + 1}`}

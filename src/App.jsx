@@ -21,7 +21,7 @@ function App() {
     <BrowserRouter>
       <NavBar></NavBar>
       <Routes>
-        <Route path="/login" element={<Login />}>
+        <Route path="/admin" element={<AdminPage />}>
           <Route path="products" element={<ProductManage />} />
           <Route path="products/add" element={<AddProduct />} />
           <Route path="customers" element={<CustomerManage />} />
@@ -30,6 +30,7 @@ function App() {
           <Route path="vouchers/add" element={<AddVoucher />} />
         </Route>
         <Route path="/" element={<Home />} />
+        <Route path="/login" element={<Login />} />
         <Route path="/products" element={<ProductPage />} />
         <Route path="/product/:id" element={<DetailPage />} />
         <Route path="/add-product" element={<AddProduct />} />

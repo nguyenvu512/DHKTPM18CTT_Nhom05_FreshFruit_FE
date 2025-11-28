@@ -98,7 +98,7 @@ const LoginForm = () => {
 
               <p className="text-center mt-3" style={{ fontSize: "13px" }}>
                 Not A Member?{" "}
-                <a href="#" style={{ textDecoration: "none" }}>
+                <a href="/register" style={{ textDecoration: "none" }}>
                   Đăng Ký
                 </a>
               </p>

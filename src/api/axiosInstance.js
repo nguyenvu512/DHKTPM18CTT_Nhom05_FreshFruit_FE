@@ -34,7 +34,7 @@ api.interceptors.response.use(
     const originalRequest = error.config;
 
     // Nếu token hết hạn → 401 Unauthorized
-    if (error.response?.code === 1406 && !originalRequest._retry) {
+    if (error.data?.code === 1406 && !originalRequest._retry) {
       originalRequest._retry = true;
 
       if (!isRefreshing) {

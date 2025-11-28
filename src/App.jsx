@@ -14,14 +14,14 @@ import AddCustomer from "./admin/AddCustomer";
 import AddVoucher from "./admin/AddVoucher";
 import CustomerManage from "./admin/CustomerManage";
 import VoucherManage from "./admin/VoucherManage";
-
+import Login from "./page/Login";
 function App() {
   return (
     // Đây là nơi Router "bọc" toàn bộ ứng dụng
     <BrowserRouter>
       <NavBar></NavBar>
       <Routes>
-        <Route path="/admin" element={<AdminPage />}>
+        <Route path="/login" element={<Login />}>
           <Route path="products" element={<ProductManage />} />
           <Route path="products/add" element={<AddProduct />} />
           <Route path="customers" element={<CustomerManage />} />

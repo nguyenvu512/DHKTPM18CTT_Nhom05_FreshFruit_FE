@@ -17,9 +17,15 @@ const LoginForm = () => {
         },
         { withCredentials: true }
       );
-      console.log(res.data);
+
+      // Lưu accessToken vào localStorage
+      const { accessToken } = res.data.result;
+      localStorage.setItem("accessToken", accessToken);
+
+      // Điều hướng về home
+      window.location.href = "/";
     } catch (error) {
-      console.log(error.response.data);
+      console.log(error.response?.data || error.message);
     }
   };
 

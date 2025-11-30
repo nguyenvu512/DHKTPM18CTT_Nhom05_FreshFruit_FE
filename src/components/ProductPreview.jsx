@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import { getAllProducts } from "../api/productApi";
 
 const ProductPreview = () => {
   const [products, setProducts] = useState([]);
@@ -9,9 +10,7 @@ const ProductPreview = () => {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const response = await fetch("https://68ddc5fad7b591b4b78d6146.mockapi.io/products");
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-        const data = await response.json();
+        const data = await getAllProducts();
         setProducts(data.slice(0, 8));
       } catch (err) {
         setError(err.message || "Something went wrong");
@@ -22,8 +21,10 @@ const ProductPreview = () => {
     fetchProducts();
   }, []);
 
-  if (loading) return <div className="text-center mt-4">Đang tải sản phẩm…</div>;
-  if (error) return <div className="text-center mt-4 text-danger">Lỗi: {error}</div>;
+  if (loading)
+    return <div className="text-center mt-4">Đang tải sản phẩm…</div>;
+  if (error)
+    return <div className="text-center mt-4 text-danger">Lỗi: {error}</div>;
 
   return (
     <div className="container mt-4">
@@ -34,7 +35,7 @@ const ProductPreview = () => {
       </h2>
 
       <div className="row">
-        {products.map(product => (
+        {products.map((product) => (
           <div key={product.id} className="col-6 col-md-3 mb-4">
             {/* Link sang DetailPage, truyền product qua state */}
             <Link
@@ -43,16 +44,23 @@ const ProductPreview = () => {
               style={{ textDecoration: "none", color: "inherit" }}
             >
               <div className="card h-100 text-center hover-shadow">
-                {product.img && (
+                {product.images && (
                   <img
-                    src={product.img}
+                    src={product.images[0].url}
                     className="card-img-top"
                     alt={product.name}
-                    style={{ objectFit: "contain", width: "100%" }}
+                    style={{
+                      objectFit: "conver",
+                      width: "100%",
+                      height: "250px",
+                    }}
                   />
                 )}
                 <div className="card-body d-flex flex-column">
-                  <h5 className="card-title text-truncate mb-2" title={product.name}>
+                  <h5
+                    className="card-title text-truncate mb-2"
+                    title={product.name}
+                  >
                     {product.name}
                   </h5>
                   <p className="text-success fw-bold mb-3">{product.price} đ</p>

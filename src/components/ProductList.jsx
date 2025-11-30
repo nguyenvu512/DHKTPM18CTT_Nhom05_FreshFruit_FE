@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import "../style/ProductList.css";
+import { getAllProducts } from "../api/productApi";
 
 const ProductList = () => {
   const [products, setProducts] = useState([]);
@@ -10,27 +11,26 @@ const ProductList = () => {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const response = await fetch('https://68ddc5fad7b591b4b78d6146.mockapi.io/products');
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-        const data = await response.json();
-        setProducts(data);
+        const result = await getAllProducts();
+        setProducts(result);
       } catch (err) {
-        setError(err.message || 'Something went wrong');
+        setError(err.message || "Something went wrong");
       } finally {
         setLoading(false);
       }
     };
-
     fetchProducts();
   }, []);
 
-  if (loading) return <div className="text-center mt-4">Đang tải sản phẩm…</div>;
-  if (error) return <div className="text-center mt-4 text-danger">Lỗi: {error}</div>;
+  if (loading)
+    return <div className="text-center mt-4">Đang tải sản phẩm…</div>;
+  if (error)
+    return <div className="text-center mt-4 text-danger">Lỗi: {error}</div>;
 
   return (
     <div className="container mt-4">
       <div className="row">
-        {products.map(product => (
+        {products.map((product) => (
           <div key={product.id} className="col-6 col-md-3 mb-4">
             <Link
               to={`/product/${product.id}`}
@@ -38,17 +38,21 @@ const ProductList = () => {
               style={{ textDecoration: "none", color: "inherit" }}
             >
               <div className="card h-100 text-center hover-shadow">
-                {product.img && (
+                {product.images && product.images.length > 0 && (
                   <img
-                    src={product.img}
+                    src={product.images[0].url}
                     className="card-img-top"
                     alt={product.name}
-                    style={{ objectFit: "contain", width: "100%" }}
+                    style={{
+                      objectFit: "conver",
+                      width: "100%",
+                      height: "250px",
+                    }}
                   />
                 )}
                 <div className="card-body d-flex flex-column">
-                  <h5 
-                    className="card-title text-truncate mb-2" 
+                  <h5
+                    className="card-title text-truncate mb-2"
                     title={product.name}
                     style={{ fontSize: "1.5rem" }}
                   >

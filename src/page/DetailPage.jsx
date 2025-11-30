@@ -3,27 +3,29 @@ import React, { useState } from "react";
 import { useLocation } from "react-router-dom";
 import NavBar from "../components/Navbar";
 
-
 function DetailPage() {
   const location = useLocation();
   const { product } = location.state || {}; // nhận data từ ProductList
   const [quantity, setQuantity] = useState(1);
 
-  if (!product) return <div className="text-center mt-4">Không có dữ liệu sản phẩm</div>;
+  if (!product)
+    return <div className="text-center mt-4">Không có dữ liệu sản phẩm</div>;
 
   return (
-   
     <div className="container mt-5">
-       
       <div className="row">
         {/* Ảnh sản phẩm */}
         <div className="col-md-6 text-center">
-          {product.img && (
+          {product.images && (
             <img
-              src={product.img}
+              src={product.images[0].url}
               alt={product.name}
               className="img-fluid rounded shadow"
-              style={{ maxHeight: "400px", objectFit: "contain" }}
+              style={{
+                maxHeight: "400px",
+                width: "400px",
+                objectFit: "conver",
+              }}
             />
           )}
         </div>
@@ -33,14 +35,13 @@ function DetailPage() {
           {/* Tên sản phẩm đổi màu warning */}
           <h2 className="text-warning">{product.name}</h2>
           <p>
-  Mã sản phẩm: <strong>{product.id}</strong> | Tình trạng:{" "}
-  {product.inventory > 0 ? (
-    <span className="text-success">Còn hàng</span>
-  ) : (
-    <span className="text-danger">Hết hàng</span>
-  )}
-</p>
-
+            Mã sản phẩm: <strong>{product.id}</strong> | Tình trạng:{" "}
+            {product.inventory > 0 ? (
+              <span className="text-success">Còn hàng</span>
+            ) : (
+              <span className="text-danger">Hết hàng</span>
+            )}
+          </p>
 
           {/* Mã giảm giá */}
           <div className="mb-3">
@@ -89,7 +90,6 @@ function DetailPage() {
         </div>
       )}
     </div>
-    
   );
 }
 

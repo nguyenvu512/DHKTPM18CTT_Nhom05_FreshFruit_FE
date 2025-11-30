@@ -1,7 +1,25 @@
 // src/pages/DetailPage.jsx
 import React, { useState } from "react";
 import { useLocation } from "react-router-dom";
-import NavBar from "../components/Navbar";
+import * as cartApi from "../api/cartApi";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+
+const parseJwt = (token) => {
+  try {
+    const base64Url = token.split(".")[1];
+    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split("")
+        .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
+        .join("")
+    );
+    return JSON.parse(jsonPayload);
+  } catch {
+    return null;
+  }
+};
 
 function DetailPage() {
   const location = useLocation();
@@ -11,8 +29,32 @@ function DetailPage() {
   if (!product)
     return <div className="text-center mt-4">Không có dữ liệu sản phẩm</div>;
 
+  const handleAddToCart = async () => {
+    const token = localStorage.getItem("accessToken");
+    if (!token) {
+      toast.warning("Vui lòng đăng nhập để thêm sản phẩm vào giỏ.");
+      return;
+    }
+
+    const customerId = parseJwt(token)?.customerID;
+    if (!customerId) {
+      toast.error("Token không hợp lệ. Vui lòng đăng nhập lại.");
+      return;
+    }
+
+    try {
+      await cartApi.addToCart({ customerId, productId: product.id, quantity });
+      toast.success(`Đã thêm ${quantity} "${product.name}" vào giỏ hàng.`);
+    } catch (err) {
+      console.error(err);
+      toast.error("Thêm sản phẩm vào giỏ thất bại.");
+    }
+  };
+
   return (
     <div className="container mt-5">
+      <ToastContainer position="top-right" autoClose={2000} hideProgressBar />
+
       <div className="row">
         {/* Ảnh sản phẩm */}
         <div className="col-md-6 text-center">
@@ -24,7 +66,7 @@ function DetailPage() {
               style={{
                 maxHeight: "400px",
                 width: "400px",
-                objectFit: "conver",
+                objectFit: "cover",
               }}
             />
           )}
@@ -32,7 +74,6 @@ function DetailPage() {
 
         {/* Thông tin sản phẩm */}
         <div className="col-md-6">
-          {/* Tên sản phẩm đổi màu warning */}
           <h2 className="text-warning">{product.name}</h2>
           <p>
             Mã sản phẩm: <strong>{product.id}</strong> | Tình trạng:{" "}
@@ -76,8 +117,13 @@ function DetailPage() {
             </button>
           </div>
 
-          {/* Thêm vào giỏ, button warning */}
-          <button className="btn btn-warning btn-lg w-100">THÊM VÀO GIỎ</button>
+          {/* Thêm vào giỏ */}
+          <button
+            className="btn btn-warning btn-lg w-100"
+            onClick={handleAddToCart}
+          >
+            THÊM VÀO GIỎ
+          </button>
         </div>
       </div>
 

@@ -62,7 +62,7 @@ function VoucherManage() {
   };
 
   const handleAddVoucher = () => {
-    navigate("/add-voucher");
+    navigate("/admin/vouchers/add");
   };
 
   if (loading) return <p className="text-center mt-4">Đang tải dữ liệu...</p>;

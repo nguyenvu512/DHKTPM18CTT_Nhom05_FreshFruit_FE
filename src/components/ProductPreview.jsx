@@ -36,7 +36,6 @@ const ProductPreview = () => {
       <div className="row">
         {products.map(product => (
           <div key={product.id} className="col-6 col-md-3 mb-4">
-            {/* Link sang DetailPage, truyền product qua state */}
             <Link
               to={`/product/${product.id}`}
               state={{ product }}

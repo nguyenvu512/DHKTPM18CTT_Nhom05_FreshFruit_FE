@@ -63,7 +63,7 @@ function CustomerManage() {
   };
 
   const handleAddCustomer = () => {
-    navigate("/add-customer");
+    navigate("/admin/customers/add");
   };
 
   if (loading) return <p className="text-center mt-4">Đang tải dữ liệu...</p>;

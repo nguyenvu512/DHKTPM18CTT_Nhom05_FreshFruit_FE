@@ -16,7 +16,8 @@ import CustomerManage from "./admin/CustomerManage";
 import VoucherManage from "./admin/VoucherManage";
 import Login from "./page/Login";
 import Register from "./page/Register";
-import CartPage from "./page/CartPage";
+import ForgetPassword from "./page/ForgetPassword";
+import ProfilePage from "./page/ProfilePage";
 function App() {
   return (
     // Đây là nơi Router "bọc" toàn bộ ứng dụng
@@ -34,6 +35,8 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/profile" element={<ProfilePage />} />
+        <Route path="/forget-password" element={<ForgetPassword />} />
         <Route path="/products" element={<ProductPage />} />
         <Route path="/product/:id" element={<DetailPage />} />
         <Route path="/cart" element={<CartPage />} />

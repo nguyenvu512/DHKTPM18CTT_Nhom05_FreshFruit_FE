@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Container, Row, Col, Form, Button } from "react-bootstrap";
+import { Container, Row, Col, Form, Button, Alert } from "react-bootstrap";
 import "../style/LoginForm.css";
 import axios from "axios";
 
@@ -12,22 +12,37 @@ const RegisterForm = () => {
     password: "",
   });
 
+  const [successMessage, setSuccessMessage] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
+  const [loading, setLoading] = useState(false);
+
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setSuccessMessage("");
+    setErrorMessage("");
+
     try {
-      const res = await axios.post(
-        "http://localhost:8080/api/customer",
-        formData
+      setLoading(true);
+
+      await axios.post("http://localhost:8080/api/customer", formData);
+
+      // ✅ Hiển thị thông báo thành công
+      setSuccessMessage(
+        "Đăng ký thành công! Đang chuyển đến trang đăng nhập..."
       );
-      console.log("Registration success:", res.data);
-      // Điều hướng về login
-      window.location.href = "/login";
+
+      // ✅ Sau 2s chuyển sang trang login
+      setTimeout(() => {
+        window.location.href = "/login";
+      }, 2000);
     } catch (err) {
-      console.error("Registration error:", err.response?.data || err.message);
+      setErrorMessage(err.response?.data?.message || "Đăng ký thất bại");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -39,6 +54,27 @@ const RegisterForm = () => {
             <h2 className="text-center mb-4" style={{ fontSize: "20px" }}>
               ĐĂNG KÝ
             </h2>
+
+            {successMessage && (
+              <Alert
+                variant="success"
+                className="py-2"
+                style={{ fontSize: "13px" }}
+              >
+                {successMessage}
+              </Alert>
+            )}
+
+            {errorMessage && (
+              <Alert
+                variant="danger"
+                className="py-2"
+                style={{ fontSize: "13px" }}
+              >
+                {errorMessage}
+              </Alert>
+            )}
+
             <Form onSubmit={handleSubmit}>
               <Form.Group className="mb-3">
                 <Form.Label style={{ fontSize: "14px" }}>HỌ VÀ TÊN</Form.Label>
@@ -130,13 +166,14 @@ const RegisterForm = () => {
               <Button
                 type="submit"
                 className="w-100 p-2"
+                disabled={loading}
                 style={{
                   backgroundColor: "#004D5B",
                   border: "none",
                   fontSize: "14px",
                 }}
               >
-                ĐĂNG KÝ
+                {loading ? "ĐANG XỬ LÝ..." : "ĐĂNG KÝ"}
               </Button>
 
               <p className="text-center mt-3" style={{ fontSize: "13px" }}>

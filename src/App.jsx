@@ -18,6 +18,7 @@ import Login from "./page/Login";
 import Register from "./page/Register";
 import ForgetPassword from "./page/ForgetPassword";
 import ProfilePage from "./page/ProfilePage";
+import CartPage from "./page/CartPage";
 function App() {
   return (
     // Đây là nơi Router "bọc" toàn bộ ứng dụng

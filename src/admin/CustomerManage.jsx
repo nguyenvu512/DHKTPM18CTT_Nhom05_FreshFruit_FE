@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from "react";
 import "bootstrap/dist/css/bootstrap.min.css";
 import { useNavigate } from "react-router-dom";
+import { getCustomers } from "../api/customerAPI";
 
 function CustomerManage() {
   const [customers, setCustomers] = useState([]);
@@ -15,30 +16,33 @@ function CustomerManage() {
 
   const navigate = useNavigate();
 
+  // ================= LOAD CUSTOMERS =================
   useEffect(() => {
-    fetch("https://68ddc5fad7b591b4b78d6146.mockapi.io/customers")
-      .then((res) => {
-        if (!res.ok) throw new Error("Không tìm thấy endpoint /customers");
-        return res.json();
-      })
-      .then((data) => {
-        if (!Array.isArray(data)) data = [];
-        setCustomers(data);
-        setFilteredCustomers(data);
-      })
-      .catch((err) => setError(err))
-      .finally(() => setLoading(false));
+    const fetchCustomers = async () => {
+      try {
+        const data = await getCustomers();
+        setCustomers(Array.isArray(data) ? data : []);
+        setFilteredCustomers(Array.isArray(data) ? data : []);
+      } catch (err) {
+        console.error(err);
+        setError("Không thể tải danh sách khách hàng");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCustomers();
   }, []);
 
-  // Filter theo searchText
+  // ================= SEARCH =================
   useEffect(() => {
-    if (!Array.isArray(customers)) return;
     const filtered = customers.filter((c) =>
       c.name?.toLowerCase().includes(searchText.toLowerCase())
     );
     setFilteredCustomers(filtered);
   }, [searchText, customers]);
 
+  // ================= EDIT =================
   const handleEditClick = (customer) => {
     setEditingCustomerId(customer.id);
     setEditingCustomerData({ ...customer });
@@ -66,14 +70,16 @@ function CustomerManage() {
     navigate("/add-customer");
   };
 
-  if (loading) return <p className="text-center mt-4">Đang tải dữ liệu...</p>;
-  if (error)
-    return (
-      <p className="text-center mt-4 text-danger">
-        Lỗi khi tải dữ liệu: {error.message}
-      </p>
-    );
+  // ================= UI STATES =================
+  if (loading) {
+    return <p className="text-center mt-4">Đang tải dữ liệu...</p>;
+  }
 
+  if (error) {
+    return <p className="text-center mt-4 text-danger">{error}</p>;
+  }
+
+  // ================= UI =================
   return (
     <div className="container mt-4">
       <div className="d-flex justify-content-between align-items-center mb-3">
@@ -105,7 +111,7 @@ function CustomerManage() {
           </tr>
         </thead>
         <tbody>
-          {Array.isArray(filteredCustomers) && filteredCustomers.length > 0 ? (
+          {filteredCustomers.length > 0 ? (
             filteredCustomers.map((customer) => (
               <React.Fragment key={customer.id}>
                 <tr>
@@ -128,46 +134,20 @@ function CustomerManage() {
                   <tr>
                     <td colSpan="5">
                       <div className="card p-3">
-                        <div className="mb-2">
-                          <label className="form-label">Tên khách hàng</label>
-                          <input
-                            type="text"
-                            className="form-control"
-                            name="name"
-                            value={editingCustomerData.name || ""}
-                            onChange={handleChange}
-                          />
-                        </div>
-                        <div className="mb-2">
-                          <label className="form-label">Địa chỉ</label>
-                          <input
-                            type="text"
-                            className="form-control"
-                            name="address"
-                            value={editingCustomerData.address || ""}
-                            onChange={handleChange}
-                          />
-                        </div>
-                        <div className="mb-2">
-                          <label className="form-label">Số điện thoại</label>
-                          <input
-                            type="text"
-                            className="form-control"
-                            name="phone"
-                            value={editingCustomerData.phone || ""}
-                            onChange={handleChange}
-                          />
-                        </div>
-                        <div className="mb-2">
-                          <label className="form-label">Email</label>
-                          <input
-                            type="email"
-                            className="form-control"
-                            name="email"
-                            value={editingCustomerData.email || ""}
-                            onChange={handleChange}
-                          />
-                        </div>
+                        {["name", "address", "phone", "email"].map((field) => (
+                          <div className="mb-2" key={field}>
+                            <label className="form-label">
+                              {field.toUpperCase()}
+                            </label>
+                            <input
+                              className="form-control"
+                              name={field}
+                              value={editingCustomerData[field] || ""}
+                              onChange={handleChange}
+                            />
+                          </div>
+                        ))}
+
                         <div className="d-flex justify-content-center">
                           <button
                             className="btn btn-success me-2"

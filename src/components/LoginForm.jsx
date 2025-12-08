@@ -1,13 +1,33 @@
 import React, { useState } from "react";
-import { Container, Row, Col, Form, Button } from "react-bootstrap";
+import {
+  Container,
+  Row,
+  Col,
+  Form,
+  Button,
+  Toast,
+  ToastContainer,
+} from "react-bootstrap";
 import "../style/LoginForm.css";
 import axios from "axios";
+
 const LoginForm = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
+  const [toast, setToast] = useState({
+    show: false,
+    message: "",
+    type: "danger",
+  });
+
+  const showToast = (message, type = "danger") => {
+    setToast({ show: true, message, type });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+
     try {
       const res = await axios.post(
         "http://localhost:8080/api/auth/login",
@@ -18,36 +38,48 @@ const LoginForm = () => {
         { withCredentials: true }
       );
 
-      // Lưu accessToken vào localStorage
       const { accessToken } = res.data.result;
       localStorage.setItem("accessToken", accessToken);
 
-      // Điều hướng về home
+      // ✅ login success
       window.location.href = "/";
     } catch (error) {
-      console.log(error.response?.data || error.message);
+      const message =
+        error.response?.data?.message || "Email hoặc mật khẩu không đúng";
+
+      showToast(`❌ ${message}`);
     }
   };
 
   return (
     <Container className="d-flex justify-content-center align-items-center vh-100 bg-white">
+      {/* ===== TOAST ===== */}
+      <ToastContainer position="top-end" className="p-3">
+        <Toast
+          bg={toast.type}
+          show={toast.show}
+          delay={3000}
+          autohide
+          onClose={() => setToast({ ...toast, show: false })}
+          className="fs-6 px-2 py-1"
+        >
+          <Toast.Body className="text-white">{toast.message}</Toast.Body>
+        </Toast>
+      </ToastContainer>
+
       <Row>
         <Col>
           <div style={{ minWidth: "300px", margin: "0 auto" }}>
             <h2 className="text-center mb-4" style={{ fontSize: "20px" }}>
               ĐĂNG NHẬP
             </h2>
+
             <Form onSubmit={handleSubmit}>
-              <Form.Group className="mb-3" controlId="formEmail">
+              <Form.Group className="mb-3">
                 <Form.Label style={{ fontSize: "14px" }}>EMAIL</Form.Label>
-                <Form.Label
-                  style={{ fontSize: "14px", color: "red", marginLeft: "3px" }}
-                >
-                  *
-                </Form.Label>
+                <span style={{ color: "red" }}> *</span>
                 <Form.Control
                   type="email"
-                  placeholder=""
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
@@ -55,16 +87,11 @@ const LoginForm = () => {
                 />
               </Form.Group>
 
-              <Form.Group className="mb-3" controlId="formPassword">
+              <Form.Group className="mb-3">
                 <Form.Label style={{ fontSize: "14px" }}>MẬT KHẨU</Form.Label>
-                <Form.Label
-                  style={{ fontSize: "14px", color: "red", marginLeft: "3px" }}
-                >
-                  *
-                </Form.Label>
+                <span style={{ color: "red" }}> *</span>
                 <Form.Control
                   type="password"
-                  placeholder=""
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
@@ -72,17 +99,14 @@ const LoginForm = () => {
                 />
               </Form.Group>
 
-              <Form.Group
-                className="mb-3 d-flex justify-content-end align-items-center"
-                controlId="formBasicCheckbox"
-              >
+              <div className="mb-3 d-flex justify-content-end">
                 <a
-                  href="#"
+                  href="/forget-password"
                   style={{ textDecoration: "none", fontSize: "13px" }}
                 >
                   Quên Mật Khẩu?
                 </a>
-              </Form.Group>
+              </div>
 
               <Button
                 type="submit"

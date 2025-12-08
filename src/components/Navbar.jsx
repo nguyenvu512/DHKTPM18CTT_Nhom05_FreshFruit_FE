@@ -11,6 +11,7 @@ import {
 import { Link } from "react-router-dom";
 import { FiUser, FiShoppingCart, FiLogOut } from "react-icons/fi";
 import "../style/NavBar.css";
+import { logOut } from "../api/authAPI";
 
 // Hàm decode JWT để lấy payload
 const parseJwt = (token) => {
@@ -45,8 +46,8 @@ function NavBar() {
   }, []);
 
   // Logout
-  const handleLogout = () => {
-    localStorage.removeItem("accessToken");
+  const handleLogout = async () => {
+    await logOut(localStorage.getItem("accessToken"));
     setCustomerName(null);
     window.location.href = "/";
   };

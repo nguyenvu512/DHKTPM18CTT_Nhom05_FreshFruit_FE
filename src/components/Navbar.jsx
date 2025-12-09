@@ -11,6 +11,7 @@ import {
 import { Link, useNavigate } from "react-router-dom";
 import { FiUser, FiShoppingCart, FiLogOut } from "react-icons/fi";
 import "../style/NavBar.css";
+import { logOut } from "../api/authAPI";
 import { getAllProducts } from "../api/productApi";
 
 // Hàm decode JWT

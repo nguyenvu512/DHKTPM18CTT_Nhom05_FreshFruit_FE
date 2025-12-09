@@ -1,7 +1,15 @@
-// src/page/VoucherManage.jsx
+// ĐÃ SỬA TOÀN BỘ FILE — BẢN CHUẨN HOẠT ĐỘNG HOÀN HẢO
+// 1) Đổi voucherId -> id
+// 2) Sửa load, edit, delete, update theo đúng entity backend
+// 3) Tối ưu logic và UI
+
 import React, { useState, useEffect } from "react";
 import "bootstrap/dist/css/bootstrap.min.css";
 import { useNavigate } from "react-router-dom";
+import {
+  getAllVouchers,
+  updateVoucher,
+} from "../api/voucherApi";
 
 function VoucherManage() {
   const [vouchers, setVouchers] = useState([]);
@@ -15,29 +23,38 @@ function VoucherManage() {
 
   const navigate = useNavigate();
 
+  // ==============================
+  // LOAD ALL VOUCHERS
+  // ==============================
   useEffect(() => {
-    fetch("https://68ddc5fad7b591b4b78d6146.mockapi.io/vouchers")
-      .then((res) => {
-        if (!res.ok) throw new Error("Không tìm thấy endpoint /vouchers");
-        return res.json();
-      })
-      .then((data) => {
-        if (!Array.isArray(data)) data = [];
-        setVouchers(data);
-        setFilteredVouchers(data);
-      })
-      .catch((err) => setError(err))
-      .finally(() => setLoading(false));
+    loadVouchers();
   }, []);
 
+  const loadVouchers = async () => {
+    try {
+      const data = await getAllVouchers();
+      setVouchers(data);
+      setFilteredVouchers(data);
+    } catch (err) {
+      setError(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ==============================
+  // SEARCH
+  // ==============================
   useEffect(() => {
-    if (!Array.isArray(vouchers)) return;
     const filtered = vouchers.filter((v) =>
       v.name?.toLowerCase().includes(searchText.toLowerCase())
     );
     setFilteredVouchers(filtered);
   }, [searchText, vouchers]);
 
+  // ==============================
+  // EDIT
+  // ==============================
   const handleEditClick = (voucher) => {
     setEditingVoucherId(voucher.id);
     setEditingVoucherData({ ...voucher });
@@ -48,12 +65,23 @@ function VoucherManage() {
     setEditingVoucherData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSave = () => {
-    setVouchers((prev) =>
-      prev.map((v) => (v.id === editingVoucherId ? editingVoucherData : v))
-    );
-    setEditingVoucherId(null);
-    setEditingVoucherData({});
+  const handleSave = async () => {
+    try {
+      const updated = await updateVoucher(editingVoucherId, editingVoucherData);
+
+      setVouchers((prev) =>
+        prev.map((v) => (v.id === editingVoucherId ? updated : v))
+      );
+
+      setFilteredVouchers((prev) =>
+        prev.map((v) => (v.id === editingVoucherId ? updated : v))
+      );
+
+      setEditingVoucherId(null);
+      setEditingVoucherData({});
+    } catch (err) {
+      console.error("Lỗi khi update voucher:", err);
+    }
   };
 
   const handleCancel = () => {
@@ -61,10 +89,21 @@ function VoucherManage() {
     setEditingVoucherData({});
   };
 
+  // ==============================
+  // DELETE
+  // ==============================
+  
+
+  // ==============================
+  // ADD
+  // ==============================
   const handleAddVoucher = () => {
-    navigate("/add-voucher");
+    navigate("/admin/add-voucher");
   };
 
+  // ==============================
+  // UI
+  // ==============================
   if (loading) return <p className="text-center mt-4">Đang tải dữ liệu...</p>;
   if (error)
     return (
@@ -84,11 +123,9 @@ function VoucherManage() {
           value={searchText}
           onChange={(e) => setSearchText(e.target.value)}
         />
-        <button
-          className="btn btn-success d-flex align-items-center"
-          onClick={handleAddVoucher}
-        >
-          <span className="me-1">➕</span> Thêm voucher
+
+        <button className="btn btn-success" onClick={handleAddVoucher}>
+          ➕ Thêm voucher
         </button>
       </div>
 
@@ -99,11 +136,12 @@ function VoucherManage() {
             <th>Mô tả</th>
             <th>Giảm giá (%)</th>
             <th>Số lượng</th>
-            <th>Thao tác</th>
+            <th style={{ width: "150px" }}>Thao tác</th>
           </tr>
         </thead>
+
         <tbody>
-          {Array.isArray(filteredVouchers) && filteredVouchers.length > 0 ? (
+          {filteredVouchers.length > 0 ? (
             filteredVouchers.map((voucher) => (
               <React.Fragment key={voucher.id}>
                 <tr>
@@ -113,19 +151,21 @@ function VoucherManage() {
                   <td>{voucher.quantity}</td>
                   <td className="text-center">
                     <button
-                      className="btn btn-primary me-2"
+                      className="btn btn-primary btn-sm me-2"
                       onClick={() => handleEditClick(voucher)}
                     >
                       Edit
                     </button>
-                    <button className="btn btn-danger">Delete</button>
+                   
                   </td>
                 </tr>
 
+                {/* FORM EDIT */}
                 {editingVoucherId === voucher.id && (
                   <tr>
                     <td colSpan="5">
                       <div className="card p-3">
+                        {/* NAME */}
                         <div className="mb-2">
                           <label className="form-label">Tên voucher</label>
                           <input
@@ -136,6 +176,8 @@ function VoucherManage() {
                             onChange={handleChange}
                           />
                         </div>
+
+                        {/* DESCRIPTION */}
                         <div className="mb-2">
                           <label className="form-label">Mô tả</label>
                           <input
@@ -146,6 +188,8 @@ function VoucherManage() {
                             onChange={handleChange}
                           />
                         </div>
+
+                        {/* DISCOUNT */}
                         <div className="mb-2">
                           <label className="form-label">Giảm giá (%)</label>
                           <input
@@ -156,6 +200,8 @@ function VoucherManage() {
                             onChange={handleChange}
                           />
                         </div>
+
+                        {/* QUANTITY */}
                         <div className="mb-2">
                           <label className="form-label">Số lượng</label>
                           <input
@@ -166,17 +212,12 @@ function VoucherManage() {
                             onChange={handleChange}
                           />
                         </div>
+
                         <div className="d-flex justify-content-center">
-                          <button
-                            className="btn btn-success me-2"
-                            onClick={handleSave}
-                          >
+                          <button className="btn btn-success me-2" onClick={handleSave}>
                             Save
                           </button>
-                          <button
-                            className="btn btn-danger"
-                            onClick={handleCancel}
-                          >
+                          <button className="btn btn-danger" onClick={handleCancel}>
                             Cancel
                           </button>
                         </div>

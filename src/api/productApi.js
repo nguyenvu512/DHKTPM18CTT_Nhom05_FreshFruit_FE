@@ -16,7 +16,7 @@ export const getAllProducts = async () => {
 };
 
 /**
- * Lấy chi tiết sản phẩm theo id
+ * Lấy chi tiết sản phẩm theo idA
  * @param {string} id
  */
 export const getProductById = async (id) => {

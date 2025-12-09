@@ -34,7 +34,17 @@ const ProductList = () => {
 
   const [loading, setLoading] = useState(true);
 
-  // LOAD PRODUCTS + CATEGORIES
+  // PHÂN TRANG
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 8; // số sản phẩm mỗi trang
+
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentProducts = filterProducts.slice(
+    indexOfFirstItem,
+    indexOfLastItem
+  );
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -53,7 +63,6 @@ const ProductList = () => {
     fetchData();
   }, []);
 
-  // APPLY FILTER WHEN URL OR PRODUCTS CHANGE
   useEffect(() => {
     if (products.length === 0) return;
 
@@ -67,16 +76,13 @@ const ProductList = () => {
     }
 
     setSelectedCate(cateId);
-
-    // 🔥 FIX QUAN TRỌNG: BE trả category = string
     const filtered = products.filter(
       (p) => String(p.category) === String(cateId)
     );
-
     setFilterProducts(filtered);
+    setCurrentPage(1); // reset trang về 1 khi thay đổi filter
   }, [location.search, products]);
 
-  // HANDLE CLICK CATEGORY
   const handleFilterCategory = (cateId) => {
     setSelectedCate(cateId);
 
@@ -88,7 +94,6 @@ const ProductList = () => {
     }
   };
 
-  // ADD TO CART
   const handleAddToCart = async (product, e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -121,6 +126,8 @@ const ProductList = () => {
   if (loading)
     return <div className="text-center mt-4">Đang tải sản phẩm…</div>;
 
+  const totalPages = Math.ceil(filterProducts.length / itemsPerPage);
+
   return (
     <div className="container mt-4">
       {/* CATEGORY BAR */}
@@ -151,7 +158,7 @@ const ProductList = () => {
 
       {/* PRODUCT LIST */}
       <div className="row">
-        {filterProducts.map((product) => (
+        {currentProducts.map((product) => (
           <div key={product.id} className="col-6 col-md-3 mb-4">
             <div className="card h-100 text-center p-2 d-flex flex-column">
               <Link
@@ -185,6 +192,23 @@ const ProductList = () => {
           </div>
         ))}
       </div>
+
+      {/* PAGINATION */}
+      {totalPages > 1 && (
+        <div className="d-flex justify-content-center gap-2 mt-4 flex-wrap">
+          {Array.from({ length: totalPages }, (_, i) => (
+            <button
+              key={i + 1}
+              className={`btn ${
+                currentPage === i + 1 ? "btn-success" : "btn-outline-success"
+              }`}
+              onClick={() => setCurrentPage(i + 1)}
+            >
+              {i + 1}
+            </button>
+          ))}
+        </div>
+      )}
 
       <ToastContainer />
     </div>

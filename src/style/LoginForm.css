@@ -1,0 +1,49 @@
+.custom-input:focus {
+  border: 1px solid #000; /* viền đen khi focus */
+  box-shadow: none;        /* tắt highlight xanh */
+  outline: none;
+}
+
+.custom-button:focus {
+  box-shadow: none;
+  outline: none;
+}
+.custom-input {
+  font-size: 14px;
+  border-radius: 0;
+}
+
+.card {
+  border-radius: 6px;
+}
+
+textarea.form-control {
+  resize: none;
+}
+
+.form-label {
+  font-size: 13px;
+  font-weight: 500;
+}
+.custom-toast {
+  min-width: 220px;          /* ✅ to hơn */
+  max-width: 260px;
+  font-size: 14.5px;         /* ✅ chữ to hơn */
+  border-radius: 8px;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
+}
+
+.custom-toast .toast-body {
+  padding: 14px 18px;        /* ✅ padding rộng */
+  line-height: 1.4;
+}
+
+.custom-toast.success {
+  background-color: #e6f4f1;
+  color: #055160;
+}
+
+.custom-toast.danger {
+  background-color: #fdecea;
+  color: #842029;
+}

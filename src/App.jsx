@@ -14,7 +14,11 @@ import AddCustomer from "./admin/AddCustomer";
 import AddVoucher from "./admin/AddVoucher";
 import CustomerManage from "./admin/CustomerManage";
 import VoucherManage from "./admin/VoucherManage";
-
+import Login from "./page/Login";
+import Register from "./page/Register";
+import ForgetPassword from "./page/ForgetPassword";
+import ProfilePage from "./page/ProfilePage";
+import CartPage from "./page/CartPage";
 function App() {
   return (
     // Đây là nơi Router "bọc" toàn bộ ứng dụng
@@ -23,16 +27,20 @@ function App() {
       <Routes>
         <Route path="/admin" element={<AdminPage />}>
           <Route path="products" element={<ProductManage />} />
-          <Route path="products/add" element={<AddProduct />} />
           <Route path="customers" element={<CustomerManage />} />
-          <Route path="customers/add" element={<AddCustomer />} />
           <Route path="vouchers" element={<VoucherManage />} />
-          <Route path="vouchers/add" element={<AddVoucher />} />
+          <Route path="add-product" element={<AddProduct />} />
+          <Route path="add-customer" element={<AddCustomer />} />
+          <Route path="add-voucher" element={<AddVoucher />} />
         </Route>
         <Route path="/" element={<Home />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/profile" element={<ProfilePage />} />
+        <Route path="/forget-password" element={<ForgetPassword />} />
         <Route path="/products" element={<ProductPage />} />
         <Route path="/product/:id" element={<DetailPage />} />
-       
+        <Route path="/cart" element={<CartPage />} />
       </Routes>
 
       <Footer></Footer>

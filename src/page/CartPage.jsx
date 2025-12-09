@@ -74,6 +74,7 @@ const CartPage = () => {
     try {
       const data = await cartApi.getCart(customerId);
       setCart(data);
+      console.log(cart)
     } catch (err) {
       console.error(err);
     }
@@ -227,6 +228,7 @@ const CartPage = () => {
                 variant="success"
                 className="fw-bold"
                 style={{ minWidth: "120px" }}
+                onClick={()=> navigate("/order", {state: {items: cart.items}})}
               >
                 Thanh toán
               </Button>

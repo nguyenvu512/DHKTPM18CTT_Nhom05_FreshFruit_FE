@@ -1,22 +1,37 @@
 // src/page/AddProduct.jsx
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import "bootstrap/dist/css/bootstrap.min.css";
-import { createProduct } from "../api/productApi"; // Đảm bảo đường dẫn đúng
+import { createProduct } from "../api/productApi";
+import { getAllCategories } from "../api/categoryApi";
 
 function AddProduct() {
   const navigate = useNavigate();
 
+  const [categories, setCategories] = useState([]);
   const [product, setProduct] = useState({
     name: "",
-    price: 0,
+    price: "",
     inventory: 0,
     origin: "",
     categoryId: "",
-    imgFile: null, // đổi tên img → imgFile
+    description: "",
+    imgFiles: [],
   });
+  const [previewImages, setPreviewImages] = useState([]);
 
-  const [preview, setPreview] = useState(null);
+  // Load categories từ backend
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const data = await getAllCategories();
+        setCategories(data);
+      } catch (err) {
+        console.error("Lỗi tải danh mục:", err);
+      }
+    };
+    fetchCategories();
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -24,11 +39,23 @@ function AddProduct() {
   };
 
   const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setPreview(URL.createObjectURL(file));
-      setProduct({ ...product, imgFile: file });
-    }
+    const files = Array.from(e.target.files);
+    const newPreviews = files.map((file) => URL.createObjectURL(file));
+
+    setProduct((prev) => ({
+      ...prev,
+      imgFiles: [...prev.imgFiles, ...files],
+    }));
+
+    setPreviewImages((prev) => [...prev, ...newPreviews]);
+  };
+
+  const handleRemoveImage = (index) => {
+    setProduct((prev) => ({
+      ...prev,
+      imgFiles: prev.imgFiles.filter((_, i) => i !== index),
+    }));
+    setPreviewImages((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleSave = async () => {
@@ -43,17 +70,12 @@ function AddProduct() {
       formData.append("price", product.price);
       formData.append("inventory", product.inventory);
       formData.append("origin", product.origin);
-      formData.append("category", product.categoryId); // phải trùng tên param backend
-      if (product.imgFile) {
-        // Nếu backend mong "images" là mảng MultipartFile
-        formData.append("images", product.imgFile);
-      }
+      formData.append("category", product.categoryId);
+      formData.append("description", product.description);
 
-      for (let pair of formData.entries()) {
-        console.log(pair[0] + ": " + pair[1]);
-      }
+      product.imgFiles.forEach((file) => formData.append("images", file));
 
-      await createProduct(formData); // nhớ backend nhận FormData
+      await createProduct(formData);
       alert("Thêm sản phẩm thành công!");
       navigate("/admin/products");
     } catch (err) {
@@ -63,116 +85,188 @@ function AddProduct() {
   };
 
   return (
-    <div
-      className="d-flex justify-content-center align-items-center vh-100"
-      style={{ marginTop: "50px" }}
-    >
-      <div className="card p-4" style={{ width: "500px" }}>
-        <h3 className="text-center mb-4">Thêm sản phẩm mới</h3>
+    <div className="container mt-5">
+      <div className="card mx-auto shadow" style={{ maxWidth: "700px" }}>
+        <div className="card-body">
+          <h3 className="card-title text-center mb-4">Thêm sản phẩm mới</h3>
 
-        {/* Tên sản phẩm */}
-        <div className="mb-3">
-          <label className="form-label">Tên sản phẩm</label>
-          <input
-            type="text"
-            className="form-control"
-            name="name"
-            value={product.name}
-            onChange={handleChange}
-          />
-        </div>
-
-        {/* Giá */}
-        <div className="mb-3">
-          <label className="form-label">Giá</label>
-          <input
-            type="number"
-            className="form-control"
-            name="price"
-            value={product.price}
-            onChange={handleChange}
-          />
-        </div>
-
-        {/* Số lượng tồn */}
-        <div className="mb-3">
-          <label className="form-label">Số lượng tồn</label>
-          <input
-            type="number"
-            className="form-control"
-            name="inventory"
-            value={product.inventory}
-            onChange={handleChange}
-          />
-        </div>
-
-        {/* Xuất xứ */}
-        <div className="mb-3">
-          <label className="form-label">Xuất xứ</label>
-          <input
-            type="text"
-            className="form-control"
-            name="origin"
-            value={product.origin}
-            onChange={handleChange}
-          />
-        </div>
-
-        {/* Select Category */}
-        <div className="mb-3">
-          <label className="form-label">Danh mục</label>
-          <select
-            className="form-select"
-            name="categoryId"
-            value={product.categoryId}
-            onChange={handleChange}
-          >
-            <option value="">-- Chọn danh mục --</option>
-            <option value="1">Trái cây</option>
-            <option value="2">Rau củ</option>
-            <option value="3">Đồ uống</option>
-            <option value="4">Đồ ăn vặt</option>
-          </select>
-        </div>
-
-        {/* Ảnh sản phẩm */}
-        <label className="form-label">Ảnh sản phẩm</label>
-        <div className="mb-3 d-flex align-items-center">
-          <div style={{ width: "100px", height: "100px", marginRight: "10px" }}>
-            {preview ? (
-              <img
-                src={preview}
-                alt="preview"
-                style={{ width: "100%", height: "100%", objectFit: "cover" }}
-              />
-            ) : (
-              <div className="border w-100 h-100 d-flex justify-content-center align-items-center">
-                Preview
-              </div>
-            )}
-          </div>
-          <label className="btn btn-primary mb-0">
-            Upload File
+          <div className="mb-3">
+            <label className="form-label">Tên sản phẩm *</label>
             <input
-              type="file"
-              accept="image/*"
-              onChange={handleFileChange}
-              hidden
+              type="text"
+              className="form-control"
+              name="name"
+              value={product.name}
+              onChange={handleChange}
+              placeholder="Nhập tên sản phẩm"
             />
-          </label>
-        </div>
+          </div>
 
-        {/* Buttons */}
-        <div className="d-flex justify-content-center mt-3">
-          <button className="btn btn-success me-2" onClick={handleSave}>
-            Save
-          </button>
-          <button
-            className="btn btn-danger"
-            onClick={() => navigate("/admin/products")}
-          >
-            Cancel
-          </button>
+          <div className="mb-3">
+            <label className="form-label">Giá *</label>
+            <input
+              type="number"
+              className="form-control"
+              name="price"
+              value={product.price}
+              onChange={handleChange}
+              placeholder="Nhập giá sản phẩm"
+            />
+          </div>
+
+          <div className="mb-3">
+            <label className="form-label">Số lượng tồn</label>
+            <input
+              type="number"
+              className="form-control"
+              name="inventory"
+              value={product.inventory}
+              onChange={handleChange}
+              placeholder="Nhập số lượng tồn"
+            />
+          </div>
+
+          <div className="mb-3">
+            <label className="form-label">Xuất xứ</label>
+            <input
+              type="text"
+              className="form-control"
+              name="origin"
+              value={product.origin}
+              onChange={handleChange}
+              placeholder="Nhập xuất xứ"
+            />
+          </div>
+
+          <div className="mb-3">
+            <label className="form-label">Danh mục *</label>
+            <select
+              className="form-select"
+              name="categoryId"
+              value={product.categoryId}
+              onChange={handleChange}
+            >
+              <option value="">-- Chọn danh mục --</option>
+              {categories.map((cat) => (
+                <option key={cat.id} value={cat.id}>
+                  {cat.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="mb-3">
+            <label className="form-label">Mô tả sản phẩm</label>
+            <textarea
+              className="form-control"
+              name="description"
+              value={product.description}
+              onChange={handleChange}
+              rows={4}
+              placeholder="Nhập mô tả sản phẩm"
+              style={{ resize: "vertical", overflowY: "auto" }} // <-- thêm
+            />
+          </div>
+
+          <div className="mb-3">
+            <label className="form-label">Ảnh sản phẩm</label>
+            <div className="d-flex flex-wrap gap-3">
+              {previewImages.map((src, index) => (
+                <div
+                  key={index}
+                  style={{
+                    position: "relative",
+                    width: "120px",
+                    height: "120px",
+                    border: "1px solid #ccc",
+                    borderRadius: "5px",
+                    overflow: "hidden",
+                  }}
+                >
+                  <img
+                    src={src}
+                    alt={`preview-${index}`}
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "cover",
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveImage(index)}
+                    style={{
+                      position: "absolute",
+                      top: "2px",
+                      right: "2px",
+                      background: "red",
+                      color: "white",
+                      border: "none",
+                      borderRadius: "50%",
+                      width: "20px",
+                      height: "20px",
+                      cursor: "pointer",
+                      fontWeight: "bold",
+                      lineHeight: "18px",
+                      textAlign: "center",
+                      padding: 0,
+                    }}
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+
+              <label
+                style={{
+                  width: "120px",
+                  height: "120px",
+                  border: "2px dashed #0d6efd",
+                  borderRadius: "8px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor: "pointer",
+                  color: "#0d6efd",
+                  fontSize: "24px",
+                  fontWeight: "bold",
+                  transition: "0.2s",
+                }}
+                onMouseOver={(e) =>
+                  (e.currentTarget.style.background = "#e7f1ff")
+                }
+                onMouseOut={(e) =>
+                  (e.currentTarget.style.background = "transparent")
+                }
+              >
+                +
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={handleFileChange}
+                  hidden
+                />
+              </label>
+            </div>
+          </div>
+
+          <div className="d-flex justify-content-center mt-4 gap-2">
+            <button
+              className="btn btn-warning"
+              style={{ width: "120px" }}
+              onClick={handleSave}
+            >
+              Save
+            </button>
+            <button
+              className="btn btn-danger"
+              style={{ width: "120px" }}
+              onClick={() => navigate("/admin/products")}
+            >
+              Cancel
+            </button>
+          </div>
         </div>
       </div>
     </div>

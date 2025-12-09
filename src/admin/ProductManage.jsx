@@ -7,8 +7,10 @@ import {
   deleteProduct,
   updateProduct,
 } from "../api/productApi";
+import { getAllCategories } from "../api/categoryApi";
 
 function ProductManage() {
+  const [categories, setCategories] = useState([]);
   const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -29,6 +31,18 @@ function ProductManage() {
     indexOfFirstItem,
     indexOfLastItem
   );
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const data = await getAllCategories();
+        setCategories(data);
+      } catch (err) {
+        console.error("Lỗi tải danh mục:", err);
+      }
+    };
+    fetchCategories();
+  }, []);
 
   const loadProducts = async () => {
     try {
@@ -58,7 +72,7 @@ function ProductManage() {
     setEditingProductData({
       ...product,
       previewImages: product.images ? product.images.map((img) => img.url) : [],
-      imgFiles: [], // reset file mới
+      imgFiles: [],
     });
   };
 
@@ -98,6 +112,7 @@ function ProductManage() {
       formData.append("inventory", editingProductData.inventory || 0);
       formData.append("origin", editingProductData.origin || "");
       formData.append("category", editingProductData.category);
+      formData.append("description", editingProductData.description || "");
 
       if (
         editingProductData.imgFiles &&
@@ -111,11 +126,10 @@ function ProductManage() {
       if (editingProductId) {
         await updateProduct(editingProductId, formData);
 
-        // Update UI
         const updatedImages =
           editingProductData.imgFiles.length > 0
             ? editingProductData.previewImages
-            : editingProductData.previewImages; // giữ ảnh cũ nếu không upload mới
+            : editingProductData.previewImages;
 
         setProducts((prev) =>
           prev.map((p) =>
@@ -180,7 +194,7 @@ function ProductManage() {
         </button>
       </div>
 
-      <table className="table table-bordered table-hover">
+      <table className="table table-bordered table-hover align-middle text-center">
         <thead className="table-dark">
           <tr>
             <th>Ảnh</th>
@@ -196,7 +210,13 @@ function ProductManage() {
           {currentProducts.map((product) => (
             <React.Fragment key={product.id}>
               <tr>
-                <td>
+                <td
+                  style={{
+                    width: "100px",
+                    textAlign: "center",
+                    verticalAlign: "middle",
+                  }}
+                >
                   <img
                     src={product.images?.[0]?.url || ""}
                     alt={product.name}
@@ -204,6 +224,9 @@ function ProductManage() {
                       width: "80px",
                       height: "80px",
                       objectFit: "cover",
+                      display: "block",
+                      margin: "0 auto",
+                      borderRadius: "4px",
                     }}
                   />
                 </td>
@@ -211,16 +234,31 @@ function ProductManage() {
                 <td>{product.price}</td>
                 <td>{product.inventory || 0}</td>
                 <td>{product.origin || ""}</td>
-                <td>{product.category || ""}</td>
-                <td className="text-center">
+                <td>
+                  {categories.find((cat) => cat.id === product.category)
+                    ?.name || ""}
+                </td>
+
+                <td
+                  style={{
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    height: "100px",
+                    gap: "10px",
+                    verticalAlign: "middle",
+                  }}
+                >
                   <button
-                    className="btn btn-primary me-2"
+                    className="btn btn-warning btn-sm"
+                    style={{ minWidth: "70px" }}
                     onClick={() => handleEditClick(product)}
                   >
                     Edit
                   </button>
                   <button
-                    className="btn btn-danger"
+                    className="btn btn-danger btn-sm"
+                    style={{ minWidth: "70px" }}
                     onClick={() => handleDelete(product.id)}
                   >
                     Delete
@@ -231,64 +269,81 @@ function ProductManage() {
               {editingProductId === product.id && (
                 <tr>
                   <td colSpan="7">
-                    <div className="card p-3">
-                      <div className="mb-2">
-                        <label className="form-label">Tên sản phẩm</label>
-                        <input
-                          type="text"
-                          className="form-control"
-                          name="name"
-                          value={editingProductData.name}
-                          onChange={handleChange}
-                        />
-                      </div>
-                      <div className="mb-2">
-                        <label className="form-label">Giá</label>
-                        <input
-                          type="number"
-                          className="form-control"
-                          name="price"
-                          value={editingProductData.price}
-                          onChange={handleChange}
-                        />
-                      </div>
-                      <div className="mb-2">
-                        <label className="form-label">Số lượng tồn</label>
-                        <input
-                          type="number"
-                          className="form-control"
-                          name="inventory"
-                          value={editingProductData.inventory || 0}
-                          onChange={handleChange}
-                        />
-                      </div>
-                      <div className="mb-2">
-                        <label className="form-label">Xuất xứ</label>
-                        <input
-                          type="text"
-                          className="form-control"
-                          name="origin"
-                          value={editingProductData.origin || ""}
-                          onChange={handleChange}
-                        />
-                      </div>
-                      <div className="mb-2">
-                        <label className="form-label">Danh mục</label>
-                        <select
-                          className="form-select"
-                          name="category"
-                          value={editingProductData.category || ""}
-                          onChange={handleChange}
-                        >
-                          <option value="">-- Chọn danh mục --</option>
-                          <option value="1">Trái cây</option>
-                          <option value="2">Rau củ</option>
-                          <option value="3">Đồ uống</option>
-                          <option value="4">Đồ ăn vặt</option>
-                        </select>
+                    <div className="card p-3 shadow-sm">
+                      <h5 className="mb-3">Chỉnh sửa sản phẩm</h5>
+                      <div className="row g-3">
+                        <div className="col-md-4">
+                          <label className="form-label">Tên sản phẩm</label>
+                          <input
+                            type="text"
+                            className="form-control"
+                            name="name"
+                            value={editingProductData.name}
+                            onChange={handleChange}
+                          />
+                        </div>
+                        <div className="col-md-4">
+                          <label className="form-label">Giá</label>
+                          <input
+                            type="number"
+                            className="form-control"
+                            name="price"
+                            value={editingProductData.price}
+                            onChange={handleChange}
+                          />
+                        </div>
+                        <div className="col-md-4">
+                          <label className="form-label">Số lượng tồn</label>
+                          <input
+                            type="number"
+                            className="form-control"
+                            name="inventory"
+                            value={editingProductData.inventory || 0}
+                            onChange={handleChange}
+                          />
+                        </div>
                       </div>
 
-                      <div className="mb-2">
+                      <div className="row g-3 mt-2">
+                        <div className="col-md-4">
+                          <label className="form-label">Xuất xứ</label>
+                          <input
+                            type="text"
+                            className="form-control"
+                            name="origin"
+                            value={editingProductData.origin || ""}
+                            onChange={handleChange}
+                          />
+                        </div>
+                        <div className="col-md-4">
+                          <label className="form-label">Danh mục</label>
+                          <select
+                            className="form-select"
+                            name="category"
+                            value={editingProductData.category || ""}
+                            onChange={handleChange}
+                          >
+                            <option value="">-- Chọn danh mục --</option>
+                            {categories.map((cat) => (
+                              <option key={cat.id} value={cat.id}>
+                                {cat.name}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="col-md-4">
+                          <label className="form-label">Mô tả</label>
+                          <textarea
+                            className="form-control"
+                            name="description"
+                            value={editingProductData.description || ""}
+                            onChange={handleChange}
+                            rows={1}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="mt-3">
                         <label className="form-label">Ảnh sản phẩm</label>
                         <div className="d-flex flex-wrap gap-3">
                           {editingProductData.previewImages?.map(
@@ -311,7 +366,6 @@ function ProductManage() {
                                     borderRadius: "4px",
                                   }}
                                 />
-                                {/* Nút xóa nhỏ góc trên phải */}
                                 <button
                                   onClick={() => {
                                     setEditingProductData((prev) => {
@@ -352,41 +406,38 @@ function ProductManage() {
                             )
                           )}
 
-                          {/* Nút thêm ảnh mới */}
-                          <div className="d-flex flex-column align-items-center">
-                            <label className="btn btn-sm btn-success">
-                              Thêm ảnh
-                              <input
-                                type="file"
-                                accept="image/*"
-                                multiple
-                                hidden
-                                onChange={(e) => {
-                                  const files = Array.from(e.target.files);
-                                  const newPreviews = files.map((file) =>
-                                    URL.createObjectURL(file)
-                                  );
-                                  setEditingProductData((prev) => ({
-                                    ...prev,
-                                    imgFiles: [
-                                      ...(prev.imgFiles || []),
-                                      ...files,
-                                    ],
-                                    previewImages: [
-                                      ...(prev.previewImages || []),
-                                      ...newPreviews,
-                                    ],
-                                  }));
-                                }}
-                              />
-                            </label>
-                          </div>
+                          <label className="btn btn-sm btn-success d-flex align-items-center justify-content-center">
+                            Thêm ảnh
+                            <input
+                              type="file"
+                              accept="image/*"
+                              multiple
+                              hidden
+                              onChange={(e) => {
+                                const files = Array.from(e.target.files);
+                                const newPreviews = files.map((file) =>
+                                  URL.createObjectURL(file)
+                                );
+                                setEditingProductData((prev) => ({
+                                  ...prev,
+                                  imgFiles: [
+                                    ...(prev.imgFiles || []),
+                                    ...files,
+                                  ],
+                                  previewImages: [
+                                    ...(prev.previewImages || []),
+                                    ...newPreviews,
+                                  ],
+                                }));
+                              }}
+                            />
+                          </label>
                         </div>
                       </div>
 
-                      <div className="d-flex justify-content-center mt-2">
+                      <div className="d-flex justify-content-center mt-3 gap-2">
                         <button
-                          className="btn btn-success me-2"
+                          className="btn btn-warning"
                           onClick={handleSave}
                         >
                           Save
@@ -407,13 +458,13 @@ function ProductManage() {
         </tbody>
       </table>
 
-      <div className="d-flex justify-content-center mt-3">
+      <div className="d-flex justify-content-center mt-3 gap-1">
         {Array.from(
           { length: Math.ceil(filteredProducts.length / itemsPerPage) },
           (_, i) => (
             <button
               key={i + 1}
-              className={`btn me-1 ${
+              className={`btn btn-sm ${
                 currentPage === i + 1 ? "btn-primary" : "btn-outline-primary"
               }`}
               onClick={() => setCurrentPage(i + 1)}

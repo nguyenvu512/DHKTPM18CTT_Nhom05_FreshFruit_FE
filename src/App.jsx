@@ -19,6 +19,7 @@ import Register from "./page/Register";
 import ForgetPassword from "./page/ForgetPassword";
 import ProfilePage from "./page/ProfilePage";
 import CartPage from "./page/CartPage";
+import "./App.css";
 import CategoryManage from "./admin/CategoryManage";
 function App() {
   return (

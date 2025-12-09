@@ -1,49 +1,50 @@
-.custom-input:focus {
-  border: 1px solid #000; /* viền đen khi focus */
-  box-shadow: none;        /* tắt highlight xanh */
-  outline: none;
+.login-box {
+  background: #ffffff;
+  border-radius: 10px;
+  padding: 2rem;
+  transition: 0.3s;
 }
 
-.custom-button:focus {
-  box-shadow: none;
-  outline: none;
+.login-box:hover {
+  transform: scale(1.01);
 }
-.custom-input {
+
+.login-title {
+  font-size: 22px;
+  font-weight: bold;
+  color: #004D5B;
+}
+
+.form-label-custom {
   font-size: 14px;
-  border-radius: 0;
+  font-weight: 600;
+  color: #333;
 }
 
-.card {
+.custom-input {
+  height: 42px;
+  font-size: 14px;
+  border-radius: 6px !important;
+}
+
+.custom-input:focus {
+  border-color: #004D5B;
+  box-shadow: 0 0 0 0.2rem rgba(0, 77, 91, 0.2);
+}
+
+.btn-login {
+  background-color: #004D5B !important;
+  border: none !important;
+  padding: 10px;
+  font-size: 15px;
   border-radius: 6px;
 }
 
-textarea.form-control {
-  resize: none;
+.btn-login:hover {
+  background-color: #006874 !important;
 }
 
-.form-label {
+.link-small {
   font-size: 13px;
-  font-weight: 500;
-}
-.custom-toast {
-  min-width: 220px;          /* ✅ to hơn */
-  max-width: 260px;
-  font-size: 14.5px;         /* ✅ chữ to hơn */
-  border-radius: 8px;
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
-}
-
-.custom-toast .toast-body {
-  padding: 14px 18px;        /* ✅ padding rộng */
-  line-height: 1.4;
-}
-
-.custom-toast.success {
-  background-color: #e6f4f1;
-  color: #055160;
-}
-
-.custom-toast.danger {
-  background-color: #fdecea;
-  color: #842029;
+  text-decoration: none;
 }

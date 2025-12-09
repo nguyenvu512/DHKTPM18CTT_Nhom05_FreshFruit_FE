@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Container, Row, Col, Form, Button, Alert } from "react-bootstrap";
-import "../style/LoginForm.css";
+import "../style/Register.css";
 import axios from "axios";
 
 const RegisterForm = () => {
@@ -47,147 +47,106 @@ const RegisterForm = () => {
   };
 
   return (
-    <Container className="d-flex justify-content-center align-items-center vh-100 bg-white">
-      <Row>
-        <Col>
-          <div style={{ minWidth: "300px", margin: "0 auto" }}>
-            <h2 className="text-center mb-4" style={{ fontSize: "20px" }}>
-              ĐĂNG KÝ
-            </h2>
+  <Container className="d-flex justify-content-center align-items-center py-5 " style={{ minHeight: "90vh" }}>
+    <Row className="w-100" style={{ maxWidth: "430px" }}>
+      <Col>
+        <div className="p-4 shadow rounded bg-white">
+          <h3 className="text-center mb-4" style={{ fontWeight: "600", color: "#004D5B" }}>
+            ĐĂNG KÝ
+          </h3>
 
-            {successMessage && (
-              <Alert
-                variant="success"
-                className="py-2"
-                style={{ fontSize: "13px" }}
-              >
-                {successMessage}
-              </Alert>
-            )}
+          {successMessage && (
+            <Alert variant="success" className="py-2">{successMessage}</Alert>
+          )}
 
-            {errorMessage && (
-              <Alert
-                variant="danger"
-                className="py-2"
-                style={{ fontSize: "13px" }}
-              >
-                {errorMessage}
-              </Alert>
-            )}
+          {errorMessage && (
+            <Alert variant="danger" className="py-2">{errorMessage}</Alert>
+          )}
 
-            <Form onSubmit={handleSubmit}>
-              <Form.Group className="mb-3">
-                <Form.Label style={{ fontSize: "14px" }}>HỌ VÀ TÊN</Form.Label>
-                <Form.Label
-                  style={{ fontSize: "14px", color: "red", marginLeft: "3px" }}
-                >
-                  *
-                </Form.Label>
-                <Form.Control
-                  type="text"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleChange}
-                  required
-                  className="w-100 rounded-0 custom-input"
-                />
-              </Form.Group>
+          <Form onSubmit={handleSubmit}>
 
-              <Form.Group className="mb-3">
-                <Form.Label style={{ fontSize: "14px" }}>ĐỊA CHỈ</Form.Label>
-                <Form.Label
-                  style={{ fontSize: "14px", color: "red", marginLeft: "3px" }}
-                >
-                  *
-                </Form.Label>
-                <Form.Control
-                  type="text"
-                  name="address"
-                  value={formData.address}
-                  onChange={handleChange}
-                  required
-                  className="w-100 rounded-0 custom-input"
-                />
-              </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Họ và tên <span className="text-danger">*</span></Form.Label>
+              <Form.Control
+                type="text"
+                name="name"
+                className="rounded"
+                value={formData.name}
+                onChange={handleChange}
+                required
+              />
+            </Form.Group>
 
-              <Form.Group className="mb-3">
-                <Form.Label style={{ fontSize: "14px" }}>
-                  SỐ ĐIỆN THOẠI
-                </Form.Label>
-                <Form.Label
-                  style={{ fontSize: "14px", color: "red", marginLeft: "3px" }}
-                >
-                  *
-                </Form.Label>
-                <Form.Control
-                  type="text"
-                  name="phone"
-                  value={formData.phone}
-                  onChange={handleChange}
-                  required
-                  className="w-100 rounded-0 custom-input"
-                />
-              </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Địa chỉ <span className="text-danger">*</span></Form.Label>
+              <Form.Control
+                type="text"
+                name="address"
+                className="rounded"
+                value={formData.address}
+                onChange={handleChange}
+                required
+              />
+            </Form.Group>
 
-              <Form.Group className="mb-3">
-                <Form.Label style={{ fontSize: "14px" }}>EMAIL</Form.Label>
-                <Form.Label
-                  style={{ fontSize: "14px", color: "red", marginLeft: "3px" }}
-                >
-                  *
-                </Form.Label>
-                <Form.Control
-                  type="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  required
-                  className="w-100 rounded-0 custom-input"
-                />
-              </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Số điện thoại <span className="text-danger">*</span></Form.Label>
+              <Form.Control
+                type="text"
+                name="phone"
+                className="rounded"
+                value={formData.phone}
+                onChange={handleChange}
+                required
+              />
+            </Form.Group>
 
-              <Form.Group className="mb-3">
-                <Form.Label style={{ fontSize: "14px" }}>MẬT KHẨU</Form.Label>
-                <Form.Label
-                  style={{ fontSize: "14px", color: "red", marginLeft: "3px" }}
-                >
-                  *
-                </Form.Label>
-                <Form.Control
-                  type="password"
-                  name="password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  required
-                  className="w-100 rounded-0 custom-input"
-                />
-              </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Email <span className="text-danger">*</span></Form.Label>
+              <Form.Control
+                type="email"
+                name="email"
+                className="rounded"
+                value={formData.email}
+                onChange={handleChange}
+                required
+              />
+            </Form.Group>
 
-              <Button
-                type="submit"
-                className="w-100 p-2"
-                disabled={loading}
-                style={{
-                  backgroundColor: "#004D5B",
-                  border: "none",
-                  fontSize: "14px",
-                }}
-              >
-                {loading ? "ĐANG XỬ LÝ..." : "ĐĂNG KÝ"}
-              </Button>
+            <Form.Group className="mb-3">
+              <Form.Label>Mật khẩu <span className="text-danger">*</span></Form.Label>
+              <Form.Control
+                type="password"
+                name="password"
+                className="rounded"
+                value={formData.password}
+                onChange={handleChange}
+                required
+              />
+            </Form.Group>
 
-              <p className="text-center mt-3" style={{ fontSize: "13px" }}>
-                Already a member?{" "}
-                <a href="/login" style={{ textDecoration: "none" }}>
-                  Đăng Nhập
-                </a>
-              </p>
-            </Form>
-          </div>
-        </Col>
-      </Row>
-    </Container>
-  );
+            <Button
+              type="submit"
+              className="w-100 p-2 rounded"
+              disabled={loading}
+              style={{ backgroundColor: "#004D5B", border: "none" }}
+            >
+              {loading ? "ĐANG XỬ LÝ..." : "ĐĂNG KÝ"}
+            </Button>
+
+            <p className="text-center mt-3">
+              Đã có tài khoản?{" "}
+              <a href="/login" style={{ textDecoration: "none" }}>
+                Đăng nhập
+              </a>
+            </p>
+          </Form>
+        </div>
+      </Col>
+    </Row>
+  </Container>
+);
+
 };
 
 export default RegisterForm;

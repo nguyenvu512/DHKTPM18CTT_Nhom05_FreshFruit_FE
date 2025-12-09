@@ -67,7 +67,7 @@ function CustomerManage() {
   };
 
   const handleAddCustomer = () => {
-    navigate("/add-customer");
+    navigate("/admin/customers/add");
   };
 
   // ================= UI STATES =================

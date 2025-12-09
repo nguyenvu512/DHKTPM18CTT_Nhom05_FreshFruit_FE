@@ -1,0 +1,45 @@
+.result-container {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 20px;
+    animation: fadeIn 0.4s ease;
+}
+
+.result-container svg {
+    margin-bottom: 20px;
+}
+
+.result-container p {
+    font-size: 1.6rem;
+    font-weight: 600;
+    margin-bottom: 30px;
+}
+
+.return-btn {
+    padding: 14px 36px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    background: transparent;
+    border: 2px solid #2ea44f;
+    color: #2ea44f;
+
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.25s ease;
+}
+
+.return-btn:hover {
+    background: #2ea44f;
+    color: white;
+    box-shadow: 0 4px 10px rgba(46, 164, 79, 0.3);
+}
+
+/* Animation */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+}

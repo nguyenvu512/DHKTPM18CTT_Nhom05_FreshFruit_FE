@@ -19,6 +19,7 @@ import Register from "./page/Register";
 import ForgetPassword from "./page/ForgetPassword";
 import ProfilePage from "./page/ProfilePage";
 import CartPage from "./page/CartPage";
+import CategoryManage from "./admin/CategoryManage";
 function App() {
   return (
     // Đây là nơi Router "bọc" toàn bộ ứng dụng
@@ -29,7 +30,8 @@ function App() {
           <Route path="products" element={<ProductManage />} />
           <Route path="customers" element={<CustomerManage />} />
           <Route path="vouchers" element={<VoucherManage />} />
-          <Route path="add-product" element={<AddProduct />} />
+          <Route path="products/add" element={<AddProduct />} />
+          <Route path="/admin/categories" element={<CategoryManage />} />
           <Route path="add-customer" element={<AddCustomer />} />
           <Route path="add-voucher" element={<AddVoucher />} />
         </Route>

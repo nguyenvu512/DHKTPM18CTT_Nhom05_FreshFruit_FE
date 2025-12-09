@@ -1,7 +1,7 @@
-// src/pages/DetailPage.jsx
-import React, { useState } from "react";
-import { useLocation } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { useParams, useLocation } from "react-router-dom";
 import * as cartApi from "../api/cartApi";
+import { getProductById } from "../api/productApi";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
@@ -22,12 +22,33 @@ const parseJwt = (token) => {
 };
 
 function DetailPage() {
+  const { id } = useParams();
   const location = useLocation();
-  const { product } = location.state || {}; // nhận data từ ProductList
+  const [product, setProduct] = useState(location.state?.product || null);
   const [quantity, setQuantity] = useState(1);
+  const [mainImage, setMainImage] = useState(null);
+
+  useEffect(() => {
+    if (location.state?.product && location.state.product.id === id) {
+      setProduct(location.state.product);
+      setMainImage(location.state.product.images?.[0] || null);
+    } else {
+      const fetchProduct = async () => {
+        try {
+          const data = await getProductById(id);
+          setProduct(data);
+          setMainImage(data.images?.[0] || null);
+        } catch (err) {
+          console.error(err);
+          toast.error("Không thể tải dữ liệu sản phẩm.");
+        }
+      };
+      fetchProduct();
+    }
+  }, [id, location.state]);
 
   if (!product)
-    return <div className="text-center mt-4">Không có dữ liệu sản phẩm</div>;
+    return <div className="text-center mt-4">Đang tải sản phẩm…</div>;
 
   const handleAddToCart = async () => {
     const token = localStorage.getItem("accessToken");
@@ -56,45 +77,69 @@ function DetailPage() {
       <ToastContainer position="top-right" autoClose={2000} hideProgressBar />
 
       <div className="row">
-        {/* Ảnh sản phẩm */}
+        {/* Hình ảnh */}
         <div className="col-md-6 text-center">
-          {product.images && (
-            <img
-              src={product.images[0].url}
-              alt={product.name}
-              className="img-fluid rounded shadow"
-              style={{
-                maxHeight: "400px",
-                width: "400px",
-                objectFit: "cover",
-              }}
-            />
+          {mainImage ? (
+            <>
+              <img
+                src={mainImage.url}
+                alt={product.name}
+                className="img-fluid rounded shadow mb-3"
+                style={{
+                  maxHeight: "400px",
+                  width: "100%",
+                  objectFit: "cover",
+                }}
+              />
+
+              <div className="d-flex flex-wrap justify-content-center gap-2">
+                {product.images.map((img, index) => (
+                  <img
+                    key={index}
+                    src={img.url}
+                    alt={`${product.name} ${index + 1}`}
+                    style={{
+                      width: "80px",
+                      height: "80px",
+                      objectFit: "cover",
+                      borderRadius: "4px",
+                      cursor: "pointer",
+                      border:
+                        img.url === mainImage.url
+                          ? "2px solid orange"
+                          : "1px solid #ddd",
+                    }}
+                    onClick={() => setMainImage(img)}
+                  />
+                ))}
+              </div>
+            </>
+          ) : (
+            <p>Không có hình ảnh.</p>
           )}
         </div>
 
         {/* Thông tin sản phẩm */}
         <div className="col-md-6">
-          <h2 className="text-warning">{product.name}</h2>
+          <h2 className="text-warning mb-3">{product.name}</h2>
           <p>
-            Mã sản phẩm: <strong>{product.id}</strong> | Tình trạng:{" "}
+            Tình trạng:{" "}
             {product.inventory > 0 ? (
-              <span className="text-success">Còn hàng</span>
+              <span className="text-success">Còn {product.inventory}kg</span>
             ) : (
               <span className="text-danger">Hết hàng</span>
             )}
           </p>
+          {product.origin && (
+            <p>
+              <strong>Nguồn gốc:</strong> {product.origin}
+            </p>
+          )}
 
-          {/* Mã giảm giá */}
-          <div className="mb-3">
-            <h5 className="text-warning">Mã giảm giá</h5>
-            <button className="btn btn-light me-2">FREESHIP40K</button>
-            <button className="btn btn-light">FREESHIPMF</button>
-          </div>
+          <h3 className="text-danger mb-3">
+            {new Intl.NumberFormat("vi-VN").format(product.price)} đ / 1kg
+          </h3>
 
-          {/* Giá */}
-          <h3 className="text-danger mb-3">{product.price} đ</h3>
-
-          {/* Chọn số lượng */}
           <div className="d-flex align-items-center mb-3">
             <button
               className="btn btn-outline-secondary"
@@ -117,24 +162,34 @@ function DetailPage() {
             </button>
           </div>
 
-          {/* Thêm vào giỏ */}
           <button
-            className="btn btn-warning btn-lg w-100"
+            className="btn btn-warning btn-lg w-100 mb-4"
             onClick={handleAddToCart}
+            disabled={product.inventory <= 0}
+            style={{
+              fontWeight: "bold",
+              fontSize: "18px",
+              color: product.inventory > 0 ? "#fff" : "#ccc",
+              textTransform: "uppercase",
+            }}
           >
-            THÊM VÀO GIỎ
+            {product.inventory > 0 ? "THÊM VÀO GIỎ" : "HẾT HÀNG"}
           </button>
+          {/* Mô tả và nguồn gốc */}
+          {product.description || product.origin ? (
+            <div className="mt-4">
+              {product.description && (
+                <>
+                  <h5 className="text-warning">Mô tả sản phẩm</h5>
+                  <p>{product.description}</p>
+                </>
+              )}
+            </div>
+          ) : (
+            <p>Chưa có mô tả sản phẩm.</p>
+          )}
         </div>
       </div>
-
-      {/* Mô tả sản phẩm */}
-      {product.description && (
-        <div className="mt-5">
-          <h4 className="text-warning">Mô tả sản phẩm</h4>
-          <p>{product.description}</p>
-          <p>{product.origin}</p>
-        </div>
-      )}
     </div>
   );
 }

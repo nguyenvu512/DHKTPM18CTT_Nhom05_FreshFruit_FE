@@ -37,6 +37,11 @@ export default function AdminPage() {
               Quản lý sản phẩm
             </button>
           </li>
+           <li className="list-group-item bg-dark text-white border-0 ps-0">
+            <button className="btn btn-dark w-100 text-start" onClick={() => navigate("/admin/categories")}>
+              Quản lý danh mục
+            </button>
+          </li>
           <li className="list-group-item bg-dark text-white border-0 ps-0">
             <button className="btn btn-dark w-100 text-start" onClick={() => navigate("/admin/orders")}>
               Quản lý đơn hàng

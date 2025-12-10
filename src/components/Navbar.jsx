@@ -56,6 +56,7 @@ function NavBar() {
       }
     }
   }, []);
+  
 
   // Load cart khi có customerId
   useEffect(() => {

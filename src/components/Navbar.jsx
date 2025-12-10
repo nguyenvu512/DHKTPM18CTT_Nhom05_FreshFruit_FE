@@ -46,6 +46,7 @@ function NavBar() {
       if (payload?.customerName) setCustomerName(payload.customerName);
     }
   }, []);
+  
 
   // Lấy danh sách gợi ý khi searchTerm thay đổi
   useEffect(() => {

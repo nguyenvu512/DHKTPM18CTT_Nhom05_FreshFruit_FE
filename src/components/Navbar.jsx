@@ -11,16 +11,24 @@ import {
 } from "react-bootstrap";
 import { Link, useNavigate } from "react-router-dom";
 import { FiUser, FiShoppingCart, FiLogOut, FiSettings } from "react-icons/fi";
+
 import "../style/NavBar.css";
 import { useCart } from "../context/CartContext";
+import { getAllProducts } from "../api/productApi";
 
 // Decode JWT
 const parseJwt = (token) => {
   try {
     const base64Url = token.split(".")[1];
     const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
-    return JSON.parse(atob(base64));
-  } catch (e) {
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split("")
+        .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
+        .join("")
+    );
+    return JSON.parse(jsonPayload);
+  } catch {
     return null;
   }
 };
@@ -29,53 +37,37 @@ function NavBar() {
   const navigate = useNavigate();
   const wrapperRef = useRef(null);
 
+  const { cart } = useCart(); // 👉 LẤY GIỎ GLOBAL
+
   const [customerName, setCustomerName] = useState(null);
   const [role, setRole] = useState(null);
-  const [customerId, setCustomerId] = useState(null);
-  const [cartCount, setCartCount] = useState(0);
 
-  // 🟡 Lấy global cart từ CartContext
-  const { cart } = useCart();
+  // ----------------------
+  // 🛒 Cart count — lấy từ CartContext (KHÔNG FETCH API)
+  // ----------------------
+  const cartCount = cart?.items?.length || 0;
 
-  // Tính tổng quantity trong cart
-  const cartCount = cart?.items?.reduce((sum, item) => sum + item.quantity, 0) || 0;
+  // ----------------------
+  // 🔍 Search suggestion
+  // ----------------------
+  const [searchTerm, setSearchTerm] = useState("");
+  const [suggestions, setSuggestions] = useState([]);
 
-  // Kiểm tra token khi NavBar load
+  // Load token data
   useEffect(() => {
     const token = localStorage.getItem("accessToken");
 
     if (token) {
       const payload = parseJwt(token);
-      if (payload?.customerName) {
-        setCustomerName(payload.customerName);
+
+      if (payload) {
+        setCustomerName(payload.customerName || null);
+        setRole(payload.scope || null);
       }
     }
   }, []);
 
-  // Load cart quantity
-  useEffect(() => {
-    if (!customerId) return;
-
-    const fetchCart = async () => {
-      try {
-        const res = await cartApi.getCart(customerId);
-
-        if (!res || !res.items) {
-          setCartCount(0);
-          return;
-        }
-
-        const total = res.items.reduce((s, item) => s + item.quantity, 0);
-        setCartCount(total);
-      } catch (err) {
-        console.error("Lỗi load cart:", err);
-      }
-    };
-
-    fetchCart();
-  }, [customerId]);
-
-  // Fetch product suggestions
+  // Search suggestion fetch
   useEffect(() => {
     const fetchSuggestions = async () => {
       if (!searchTerm.trim()) {
@@ -90,14 +82,14 @@ function NavBar() {
         );
         setSuggestions(filtered.slice(0, 5));
       } catch (err) {
-        console.error("Lỗi tìm kiếm:", err);
+        console.error("Search error:", err);
       }
     };
 
     fetchSuggestions();
   }, [searchTerm]);
 
-  // Click outside to close suggestions
+  // Click outside suggestion box
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (wrapperRef.current && !wrapperRef.current.contains(e.target)) {
@@ -108,20 +100,19 @@ function NavBar() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Logout
-  const handleLogout = () => {
-    localStorage.removeItem("accessToken");
-    setCustomerName(null);
-    setRole(null);
-    setCustomerId(null);
-    navigate("/");
-  };
-
   // Select product from suggestion
   const handleSelectProduct = (product) => {
     setSearchTerm("");
     setSuggestions([]);
     navigate(`/product/${product.id}`, { state: { product } });
+  };
+
+  // Logout
+  const handleLogout = () => {
+    localStorage.removeItem("accessToken");
+    setCustomerName(null);
+    setRole(null);
+    window.location.href = "/";
   };
 
   return (
@@ -135,14 +126,53 @@ function NavBar() {
 
         <Navbar.Collapse id="basic-navbar-nav">
           {/* Search */}
-          <Form className="d-flex mx-auto my-2 my-lg-0 w-50">
-            <FormControl type="search" placeholder="Tìm kiếm sản phẩm..." className="me-2" />
-          </Form>
+          <div className="mx-auto w-50 position-relative" ref={wrapperRef}>
+            <Form className="d-flex">
+              <FormControl
+                type="search"
+                placeholder="Tìm kiếm sản phẩm..."
+                className="me-2"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </Form>
 
-          {/* Menu phải */}
+            {/* Suggestions */}
+            {suggestions.length > 0 && (
+              <div
+                className="bg-white border shadow-sm position-absolute w-100 mt-1 rounded"
+                style={{ zIndex: 1050 }}
+              >
+                {suggestions.map((p) => (
+                  <div
+                    key={p.id}
+                    className="d-flex align-items-center px-2 py-2"
+                    onClick={() => handleSelectProduct(p)}
+                    style={{ cursor: "pointer" }}
+                  >
+                    {p.images?.[0]?.url && (
+                      <img
+                        src={p.images[0].url}
+                        alt={p.name}
+                        style={{
+                          width: 40,
+                          height: 40,
+                          objectFit: "cover",
+                          borderRadius: 4,
+                          marginRight: 10,
+                        }}
+                      />
+                    )}
+                    <span>{p.name}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Right menu */}
           <Nav className="ms-auto fw-semibold">
-
-            {/* User dropdown hoặc icon login */}
+            {/* User */}
             {customerName ? (
               <Dropdown align="end">
                 <Dropdown.Toggle
@@ -155,8 +185,22 @@ function NavBar() {
                 </Dropdown.Toggle>
 
                 <Dropdown.Menu>
-                  <Dropdown.Item as={Link} to="/profile">Thông tin</Dropdown.Item>
-                  <Dropdown.Item as={Link} to="/orders">Đơn hàng của tôi</Dropdown.Item>
+                  <Dropdown.Item as={Link} to="/profile">
+                    Thông tin
+                  </Dropdown.Item>
+                  <Dropdown.Item as={Link} to="/orders">
+                    Đơn hàng của tôi
+                  </Dropdown.Item>
+
+                  {role === "ROLE_ADMIN" && (
+                    <>
+                      <Dropdown.Divider />
+                      <Dropdown.Item as={Link} to="/admin">
+                        <FiSettings className="me-2" />
+                        Quản trị
+                      </Dropdown.Item>
+                    </>
+                  )}
 
                   <Dropdown.Divider />
                   <Dropdown.Item onClick={handleLogout}>
@@ -171,7 +215,7 @@ function NavBar() {
               </Nav.Link>
             )}
 
-            {/* 🛒 ICON CART + BADGE */}
+            {/* Cart */}
             <Nav.Link
               as={Link}
               to="/cart"
@@ -191,9 +235,7 @@ function NavBar() {
               >
                 {cartCount}
               </Badge>
-
             </Nav.Link>
-
           </Nav>
         </Navbar.Collapse>
       </Container>

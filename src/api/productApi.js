@@ -1,5 +1,6 @@
 // src/api/productApi.js
 import api from "./axiosInstance"; // import axios instance của bạn
+import axios from "axios";
 
 /**
  * Lấy danh sách tất cả sản phẩm
@@ -15,7 +16,7 @@ export const getAllProducts = async () => {
 };
 
 /**
- * Lấy chi tiết sản phẩm theo id
+ * Lấy chi tiết sản phẩm theo idA
  * @param {string} id
  */
 export const getProductById = async (id) => {
@@ -30,30 +31,36 @@ export const getProductById = async (id) => {
 
 /**
  * Thêm sản phẩm mới
- * @param {object} productData
+ * @param {FormData} formData
  */
-export const createProduct = async (productData) => {
+export const createProduct = async (formData) => {
     try {
-        const response = await api.post("/product", productData);
-        return response.data.result;
+        // Không cần tự set headers Content-Type
+        const response = await api.post("/product", formData);
+        return response.data;
     } catch (err) {
         console.error("Lỗi khi tạo sản phẩm:", err);
         throw err;
     }
 };
 
+
 /**
  * Cập nhật sản phẩm
  * @param {string} id
- * @param {object} productData
+ * @param {FormData} formData
  */
-export const updateProduct = async (id, productData) => {
+export const updateProduct = async (id, formData) => {
     try {
-        const response = await api.put(`/product/${id}`, productData);
+        const response = await api.put(`/product/${id}`, formData, {
+            headers: {
+                "Content-Type": "multipart/form-data", // bắt buộc để gửi file
+            },
+        });
         return response.data.result;
     } catch (err) {
         console.error("Lỗi khi cập nhật sản phẩm:", err);
-        throw err;
+        throw err; // để component handle lỗi
     }
 };
 

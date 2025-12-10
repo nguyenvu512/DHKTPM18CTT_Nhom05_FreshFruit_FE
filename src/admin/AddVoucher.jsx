@@ -1,6 +1,7 @@
 // src/page/AddVoucher.jsx
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { createVoucher } from "../api/voucherApi"; // 👈 import API
 import "bootstrap/dist/css/bootstrap.min.css";
 
 function AddVoucher() {
@@ -18,21 +19,22 @@ function AddVoucher() {
     setVoucher({ ...voucher, [name]: value });
   };
 
-  const handleSave = () => {
-    fetch("https://68ddc5fad7b591b4b78d6146.mockapi.io/vouchers", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(voucher),
-    })
-      .then(() => {
-        alert("Thêm voucher thành công!");
-        navigate("/voucher-manage");
-      })
-      .catch((err) => console.log(err));
+  const handleSave = async () => {
+    try {
+      await createVoucher(voucher); // 👈 gọi API
+      alert("Thêm voucher thành công!");
+      navigate("/admin/vouchers");
+    } catch (error) {
+      console.error("Lỗi khi thêm voucher:", error);
+      alert("Thêm thất bại!");
+    }
   };
 
   return (
-    <div className="d-flex justify-content-center align-items-center vh-100" style={{ marginTop: "50px" }}>
+    <div
+      className="d-flex justify-content-center align-items-center vh-100"
+      style={{ marginTop: "50px" }}
+    >
       <div className="card p-4" style={{ width: "500px" }}>
         <h3 className="text-center mb-4">Thêm voucher mới</h3>
 

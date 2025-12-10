@@ -1,0 +1,9 @@
+.custom-input:focus {
+  border-color: #004D5B !important;
+  box-shadow: 0 0 4px rgba(0, 77, 91, 0.4) !important;
+}
+
+a {
+  color: #004D5B;
+  font-weight: 500;
+}

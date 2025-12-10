@@ -1,8 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate, Outlet } from "react-router-dom"; // Thêm Outlet
+import { useNavigate, Outlet } from "react-router-dom";
+import { getAllProducts } from "../api/productApi";
+import { getCustomers } from "../api/customerApi";
+import { getAllOrder } from "../api/orderApi";
+
 import {
-  LineChart,
-  Line,
+  BarChart,
+  Bar,
   XAxis,
   YAxis,
   Tooltip,
@@ -11,106 +15,223 @@ import {
 } from "recharts";
 
 export default function AdminPage() {
+  const [products, setProducts] = useState([]);
+  const [customers, setCustomers] = useState([]);
+  const [orders, setOrders] = useState([]);
   const [chartData, setChartData] = useState([]);
+
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetch("https://68ddc5fad7b591b4b78d6146.mockapi.io/products")
-      .then((res) => res.json())
-      .then((data) => {
-        const formatted = data.map((item) => ({
-          name: item.name,
-          sales: item.sales,
-        }));
-        setChartData(formatted);
-      });
+    loadProducts();
+    loadCustomers();
+    loadOrders();
   }, []);
 
+  // ========================= LOAD DATA =========================
+  const loadProducts = async () => {
+    try {
+      const res = await getAllProducts();
+      setProducts(res.result ?? res ?? []);
+    } catch (e) {
+      console.error("Lỗi load sản phẩm:", e);
+    }
+  };
+
+  const loadCustomers = async () => {
+    try {
+      const res = await getCustomers();
+      setCustomers(res.result ?? res ?? []);
+    } catch (e) {
+      console.error("Lỗi load khách hàng:", e);
+    }
+  };
+
+  const loadOrders = async () => {
+    try {
+      const res = await getAllOrder();
+      const list = Array.isArray(res.result) ? res.result : [];
+      setOrders(list);
+      loadRevenueChart(list);
+    } catch (e) {
+      console.error("Lỗi load đơn hàng:", e);
+    }
+  };
+
+  // ========================= CHART =========================
+  const loadRevenueChart = (orderList) => {
+    const byMonth = Array(12).fill(0);
+
+    orderList.forEach((o) => {
+      const d = new Date(o.orderDate);
+      const m = d.getMonth();
+      byMonth[m] += o.totalAmount ?? 0;
+    });
+
+    const labels = [
+      "T1", "T2", "T3", "T4", "T5", "T6",
+      "T7", "T8", "T9", "T10", "T11", "T12",
+    ];
+
+    const chart = labels.map((m, i) => ({
+      month: m,
+      revenue: byMonth[i],
+    }));
+
+    setChartData(chart);
+  };
+
+  // Format đơn vị VNĐ
+  const formatMoney = (v) => {
+    if (v >= 1_000_000) return (v / 1_000_000).toFixed(1) + "M";
+    if (v >= 1_000) return (v / 1_000).toFixed(0) + "K";
+    return v;
+  };
+
+  const totalRevenue = orders.reduce((s, o) => s + (o.totalAmount ?? 0), 0);
+
+  // ========================== UI ==============================
   return (
-    <div className="d-flex" style={{ minHeight: "100vh", background: "#f1f3f5" }}>
+    <div className="d-flex" style={{ background: "#f6f7fb", minHeight: "100vh" }}>
       {/* Sidebar */}
-      <aside className="bg-dark text-white p-4" style={{ width: "270px", minHeight: "100vh" }}>
-        <h2 className="fw-bold mb-4">Admin Panel</h2>
-        <ul className="list-group list-group-flush">
-          <li className="list-group-item bg-dark text-white border-0 ps-0">
-            <button className="btn btn-dark w-100 text-start" onClick={() => navigate("/admin/products")}>
-              Quản lý sản phẩm
-            </button>
-          </li>
-          <li className="list-group-item bg-dark text-white border-0 ps-0">
-            <button className="btn btn-dark w-100 text-start" onClick={() => navigate("/admin/orders")}>
-              Quản lý đơn hàng
-            </button>
-          </li>
-          <li className="list-group-item bg-dark text-white border-0 ps-0">
-            <button className="btn btn-dark w-100 text-start" onClick={() => navigate("/admin/customers")}>
-              Quản lý khách hàng
-            </button>
-          </li>
-          <li className="list-group-item bg-dark text-white border-0 ps-0">
-            <button className="btn btn-dark w-100 text-start" onClick={() => navigate("/admin/vouchers")}>
-              Quản lý khuyến mãi
-            </button>
-          </li>
-        </ul>
+      <aside
+        style={{
+          width: 260,
+          background: "#111827",
+          color: "white",
+          padding: "25px 18px",
+          boxShadow: "4px 0 12px rgba(0,0,0,0.15)",
+        }}
+      >
+        <h3 className="fw-bold mb-4">📊 Admin Dashboard</h3>
+
+        {[
+          { label: "Tổng quan", path: "/admin" },
+          { label: "Sản phẩm", path: "/admin/products" },
+          { label: "Đơn hàng", path: "/admin/orders" },
+          { label: "Danh mục", path: "/admin/categories" },
+          { label: "Khách hàng", path: "/admin/customers" },
+          { label: "Khuyến mãi", path: "/admin/vouchers" },
+        ].map((item) => (
+          <div
+            key={item.path}
+            onClick={() => navigate(item.path)}
+            style={{
+              padding: "12px 15px",
+              borderRadius: 10,
+              cursor: "pointer",
+              marginBottom: 6,
+              background:
+                window.location.pathname === item.path ? "#1f2937" : "transparent",
+              transition: "0.2s",
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = "#1f2937")}
+            onMouseLeave={(e) =>
+              (e.currentTarget.style.background =
+                window.location.pathname === item.path ? "#1f2937" : "transparent")
+            }
+          >
+            {item.label}
+          </div>
+        ))}
       </aside>
 
-      {/* Main content */}
+      {/* MAIN */}
       <main className="flex-grow-1 p-4">
-        {/* Nếu URL là /admin thì hiện thống kê */}
+        {/* Top Bar */}
+        <div
+          className="d-flex justify-content-between align-items-center mb-4"
+          style={{
+            background: "white",
+            padding: "14px 20px",
+            borderRadius: 12,
+            boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+          }}
+        >
+          <h2 className="fw-bold">Quản trị hệ thống</h2>
+        </div>
+
         {window.location.pathname === "/admin" && (
           <>
-            <div className="d-flex justify-content-between align-items-center mb-4">
-              <h1 className="fw-bold">Thống kê</h1>
-            </div>
-
-            {/* Stats cards */}
+            {/* CARDS */}
             <div className="row g-3 mb-4">
-              <div className="col-md-3">
-                <div className="card p-3 text-white" style={{ background: "#60a5fa" }}>
-                  <h5>Sản phẩm bán chạy</h5>
-                  <p className="fs-3 fw-bold">9,823</p>
+              {[
+                { label: "Sản phẩm", value: products.length, color: "#2563eb" },
+                { label: "Khách hàng", value: customers.length, color: "#0ea5e9" },
+                { label: "Đơn hàng", value: orders.length, color: "#f59e0b" },
+                {
+                  label: "Doanh thu",
+                  value: totalRevenue.toLocaleString() + " đ",
+                  color: "#ef4444",
+                },
+              ].map((card, i) => (
+                <div className="col-md-3" key={i}>
+                  <div
+                    className="card text-white p-3"
+                    style={{
+                      background: card.color,
+                      borderRadius: 16,
+                      boxShadow: "0 4px 12px rgba(0,0,0,0.12)",
+                    }}
+                  >
+                    <h6>{card.label}</h6>
+                    <p className="fs-3 fw-bold">{card.value}</p>
+                  </div>
                 </div>
-              </div>
-              <div className="col-md-3">
-                <div className="card p-3 text-white" style={{ background: "#2dd4bf" }}>
-                  <h5>Doanh thu</h5>
-                  <p className="fs-3 fw-bold">12,540,000đ</p>
-                </div>
-              </div>
-              <div className="col-md-3">
-                <div className="card p-3 text-dark" style={{ background: "#fde047" }}>
-                  <h5>Đơn hàng</h5>
-                  <p className="fs-3 fw-bold">1,245</p>
-                </div>
-              </div>
-              <div className="col-md-3">
-                <div className="card p-3 text-white" style={{ background: "#f87171" }}>
-                  <h5>Khách hàng mới</h5>
-                  <p className="fs-3 fw-bold">892</p>
-                </div>
-              </div>
+              ))}
             </div>
 
-            {/* Line chart */}
-            <div className="card p-4">
-              <h5 className="fw-bold mb-3">Biểu đồ lượt bán sản phẩm</h5>
-              <div style={{ width: "100%", height: "350px" }}>
-                <ResponsiveContainer>
-                  <LineChart data={chartData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" />
-                    <YAxis />
-                    <Tooltip />
-                    <Line type="monotone" dataKey="sales" stroke="#2563eb" strokeWidth={3} />
-                  </LineChart>
+            {/* CHART */}
+            <div
+              className="card p-4 shadow-sm"
+              style={{ borderRadius: 20, background: "white" }}
+            >
+              <h5 className="fw-bold mb-3">📈 Doanh thu theo tháng</h5>
+
+              <div className="w-full" style={{ height: 380 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={chartData}
+                    margin={{ top: 20, right: 20, left: 10, bottom: 20 }}
+                    barSize={45}
+                  >
+                    <CartesianGrid strokeDasharray="4 4" stroke="#e5e7eb" />
+
+                    <XAxis
+                      dataKey="month"
+                      tick={{ fill: "#374151", fontSize: 13 }}
+                      axisLine={false}
+                    />
+
+                    <YAxis
+                      tickFormatter={(v) => formatMoney(v) + " đ"}
+                      tick={{ fill: "#374151", fontSize: 13 }}
+                      axisLine={false}
+                    />
+
+                    <Tooltip
+                      formatter={(v) => v.toLocaleString() + " đ"}
+                      contentStyle={{
+                        borderRadius: 12,
+                        border: "none",
+                        boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+                        padding: 10,
+                      }}
+                    />
+
+                    <Bar
+                      dataKey="revenue"
+                      radius={[12, 12, 0, 0]}
+                      fill="#6366f1"
+                      animationDuration={900}
+                    />
+                  </BarChart>
                 </ResponsiveContainer>
               </div>
             </div>
           </>
         )}
 
-        {/* Outlet sẽ render ProductManage / CustomerManage / VoucherManage */}
         <Outlet />
       </main>
     </div>

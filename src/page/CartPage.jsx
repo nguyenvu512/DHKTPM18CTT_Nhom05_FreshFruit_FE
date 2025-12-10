@@ -220,6 +220,7 @@ const CartPage = () => {
                 variant="success"
                 className="fw-bold"
                 style={{ minWidth: "120px" }}
+                onClick={()=> navigate("/order", {state: {items: cart.items}})}
               >
                 Thanh toán
               </Button>

@@ -1,0 +1,147 @@
+.btn-payment-dark {
+  /* width: 100%; */
+  background-color: black; /* Màu nền khi hover */
+  height: 50px;
+  color: white;
+  font-size: 20px;
+  font-weight: 600;
+  border-radius: 10px;
+  border: 1px solid #ffc107; /* Thêm viền cố định */
+
+  position: relative; /* Đặt nút ở trạng thái tương đối */
+  display: inline-block; /* Để pseudo-element hoạt động */
+  overflow: hidden; /* Ẩn phần tử tràn */
+  z-index: 1; /* Đảm bảo nội dung ở trên pseudo-element */
+  transition: color 0.3s ease; /* Chuyển đổi màu chữ */
+}
+
+.btn-payment-dark::before {
+  content: ""; /* Nội dung giả */
+  position: absolute;
+  top: 0;
+  left: -100%; /* Bắt đầu ngoài màn hình bên trái */
+  width: 100%; /* Chiều rộng phủ đầy */
+  height: 100%; /* Chiều cao phủ đầy */
+  background-color: rgb(255, 255, 255);
+  border: 1px solid #ffc107;
+  z-index: -1; /* Nằm phía sau nội dung */
+  transition: left 0.6s ease; /* Hiệu ứng trượt */
+  border-radius: 10px;
+}
+
+.btn-payment-dark:hover::before {
+  left: 0; /* Trượt vào từ bên trái */
+}
+
+.btn-payment-dark:hover {
+  color: #ffc107; /* Đổi màu chữ khi hover */
+}
+
+/* Overlay toàn màn hình */
+.order-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5); /* Màu nền đen mờ */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+
+/* Spinner */
+.order-spinner {
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #f6b904;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: spin 0.3s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+  
+
+/* Thông báo thành công */
+.success-message {
+  position: fixed;
+  top: 40%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: white;
+  padding: 20px 40px;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  text-align: center;
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Nút đóng thông báo */
+.close-btn {
+  position: absolute;
+  top: 0px;
+  right: 4px;
+  background: transparent;
+  border: none;
+  font-size: 2.2rem;
+  cursor: pointer;
+  color: gray;
+}
+
+/* Icon tích xanh */
+.success-message .icon {
+  margin-bottom: 10px;
+}
+
+/* Chữ thông báo */
+.success-message p {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: #0b610f;
+}
+
+/* Overlay dưới thông báo */
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.5); /* Màu tối với độ mờ */
+  z-index: 999; /* Nằm trên nội dung trang */
+}
+
+/* Thông báo thất bại */
+.failure-message {
+  position: fixed;
+  top: 40%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: white;
+  padding: 20px 40px;
+  border-radius: 15px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  text-align: center;
+  z-index: 1000; /* Nằm trên overlay */
+}
+
+/* Icon ở giữa */
+.failure-message .icon {
+  margin-bottom: 15px;
+}
+
+/* Văn bản báo thất bại */
+.failure-message p {
+  font-size: 1.3rem;
+  font-weight: bold;
+  color: red; /* Màu chữ đỏ */
+}

@@ -6,14 +6,35 @@ import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 function DetailPage() {
+  const { id } = useParams();
   const location = useLocation();
   const { product } = location.state || {};
   const [quantity, setQuantity] = useState(1);
+  const [mainImage, setMainImage] = useState(null);
+
+  useEffect(() => {
+    if (location.state?.product && location.state.product.id === id) {
+      setProduct(location.state.product);
+      setMainImage(location.state.product.images?.[0] || null);
+    } else {
+      const fetchProduct = async () => {
+        try {
+          const data = await getProductById(id);
+          setProduct(data);
+          setMainImage(data.images?.[0] || null);
+        } catch (err) {
+          console.error(err);
+          toast.error("Không thể tải dữ liệu sản phẩm.");
+        }
+      };
+      fetchProduct();
+    }
+  }, [id, location.state]);
 
   const { addToCart } = useCart(); // ✅ LẤY addToCart đúng cách
 
   if (!product)
-    return <div className="text-center mt-4">Không có dữ liệu sản phẩm</div>;
+    return <div className="text-center mt-4">Đang tải sản phẩm…</div>;
 
   const handleAddToCart = async () => {
     try {
@@ -72,11 +93,31 @@ function DetailPage() {
           </div>
 
           <button
-            className="btn btn-warning btn-lg w-100"
+            className="btn btn-warning btn-lg w-100 mb-4"
             onClick={handleAddToCart}
+            disabled={product.inventory <= 0}
+            style={{
+              fontWeight: "bold",
+              fontSize: "18px",
+              color: product.inventory > 0 ? "#fff" : "#ccc",
+              textTransform: "uppercase",
+            }}
           >
-            THÊM VÀO GIỎ
+            {product.inventory > 0 ? "THÊM VÀO GIỎ" : "HẾT HÀNG"}
           </button>
+          {/* Mô tả và nguồn gốc */}
+          {product.description || product.origin ? (
+            <div className="mt-4">
+              {product.description && (
+                <>
+                  <h5 className="text-warning">Mô tả sản phẩm</h5>
+                  <p>{product.description}</p>
+                </>
+              )}
+            </div>
+          ) : (
+            <p>Chưa có mô tả sản phẩm.</p>
+          )}
         </div>
       </div>
     </div>

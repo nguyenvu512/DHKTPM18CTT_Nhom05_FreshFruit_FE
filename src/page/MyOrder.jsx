@@ -1,347 +1,348 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import "bootstrap/dist/css/bootstrap.min.css";
-import { getMyOrders } from "../api/orderApi";
+import { Modal, Button, Row, Col, ListGroup, Card, Form, InputGroup } from "react-bootstrap";
+import { getAllOrder, getMyOrders, updateStatusOrder } from "../api/orderApi";
 import { getProductById } from "../api/productApi";
 import { getVoucherById } from "../api/voucherApi";
-import { Modal, Button, Row, Col, ListGroup, Card } from "react-bootstrap";
 import MoneyFormat from "../utils/MoneyFormat";
+import { parseJwt } from "../utils/Common";
+import "../style/PaymentInfo.css"; 
 
-// Định nghĩa Phí giao hàng cố định
 const SHIPPING_FEE = 20000;
 
-// Hàm tính toán tổng tiền hàng (Subtotal)
+const STATUS_FLOW = ["PENDING", "CONFIRMED", "SHIPPING", "DELIVERED", "FAILED"];
+
 const calculateSubtotal = (products) => {
-  return products.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  return products.reduce((sum, item) => sum + item.price * item.quantity, 0);
 };
 
 function MyOrder() {
-  const [orders, setOrders] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [selectedOrder, setSelectedOrder] = useState(null);
-  const [showModal, setShowModal] = useState(false); 
-  const [orderDetails, setOrderDetails] = useState({
-    products: [],
-    voucher: null,
-    calculatedTotal: 0,
-  });
-  const [loadingDetails, setLoadingDetails] = useState(false);
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [error, setError] = useState(null);
 
-  useEffect(() => {
-    loadOrders();
-  }, []);
+  // --- MỚI: State cho Filter ---
+  const [filterStatus, setFilterStatus] = useState("ALL");
+  const [filterDate, setFilterDate] = useState("");
 
-  const loadOrders = async () => {
-    try {
-      const response = await getMyOrders();
-      if (response.code === 1000) {
-        setOrders(response.result);
-      } else {
-        setError(
-          new Error(response.message || "Không tải được dữ liệu đơn hàng")
-        );
-      }
-    } catch (err) {
-      setError(err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // State Modal
+  const [selectedOrder, setSelectedOrder] = useState(null);
+  const [showModal, setShowModal] = useState(false);
+  const [orderDetails, setOrderDetails] = useState({
+    products: [],
+    voucher: null,
+    calculatedTotal: 0,
+  });
+  const [loadingDetails, setLoadingDetails] = useState(false);
 
-  const handleRowClick = async (order) => {
-    setSelectedOrder(order);
-    setShowModal(true);
-    setLoadingDetails(true);
+  // State Form Update
+  const [newStatus, setNewStatus] = useState("");
+  const [note, setNote] = useState("");
 
-    try {
-      // Lấy chi tiết sản phẩm
-      const productDetailsPromises = order.items.map(async (item) => {
-        try {
-          const product = await getProductById(item.productId);
-          return {
-            ...product,
-            quantity: item.quantity,
-            price: product.price || 0,
-          };
-        } catch (err) {
-          console.error(`Lỗi khi tải sản phẩm ID ${item.productId}:`, err);
-          return {
-            id: item.productId,
-            name: "Lỗi tải sản phẩm",
-            price: 0,
-            quantity: item.quantity,
-            images: [],
-          };
-        }
-      });
-      const products = await Promise.all(productDetailsPromises); 
-      // Lấy chi tiết voucher nếu có
-      let voucher = null;
-      if (order.voucherId) {
-        try {
-          voucher = await getVoucherById(order.voucherId);
-        } catch (err) {
-          console.error(`Lỗi khi tải voucher ID ${order.voucherId}:`, err);
-        }
-      }
+  const statusMap = {
+    PENDING: "Chờ xử lý",
+    CONFIRMED: "Đã xác nhận",
+    SHIPPING: "Đang giao hàng",
+    DELIVERED: "Đã giao thành công",
+    FAILED: "Đã hủy"
+  };
 
-      // Tính toán Subtotal và Final Total (cho mục đích hiển thị tổng kết)
-      const subtotal = calculateSubtotal(products);
-      const discountRate = voucher?.discount / 100 || 0;
-      const discountAmount = subtotal * discountRate;
-      const finalTotal = subtotal - discountAmount + SHIPPING_FEE;
+  const statusColorMap = {
+    PENDING: "bg-secondary",
+    CONFIRMED: "bg-info",
+    SHIPPING: "bg-primary",
+    DELIVERED: "bg-success",
+    FAILED: "bg-danger"
+  };
 
-      setOrderDetails({ products, voucher, calculatedTotal: finalTotal });
-    } catch (err) {
-      console.error("Lỗi khi tải chi tiết đơn hàng (lỗi chung):", err);
-    } finally {
-      setLoadingDetails(false);
-    }
-  };
+  const token = localStorage.getItem("accessToken");
+  const username = parseJwt(token)?.sub;
 
-  const handleClose = () => {
-    setShowModal(false);
-    setSelectedOrder(null);
-    setOrderDetails({ products: [], voucher: null, calculatedTotal: 0 });
-  };
+  useEffect(() => {
+    loadOrders();
+  }, []);
 
-  if (loading) return <p className="text-center mt-4">Đang tải dữ liệu...</p>;
-  if (error)
-    return (
-      <p className="text-center mt-4 text-danger">
-        Lỗi khi tải dữ liệu: {error.message}
-      </p>
-    );
+  useEffect(() => {
+    if (selectedOrder) {
+      setNewStatus("");
+      setNote("");
+    }
+  }, [selectedOrder]);
 
-  return (
-    <div className="container mt-4">
-      <h3 className="mb-3">Đơn hàng của tôi</h3>
-      <table className="table table-bordered table-hover">
-        <thead className="table-dark">
-          <tr>
-            <th>Họ tên</th>
-            <th>SĐT</th>
-            <th>Ngày đặt</th>
-            <th>Phương thức thanh toán</th>
-            <th>Trạng thái</th>
-            <th>Tổng tiền</th>
-          </tr>
-        </thead>
-        <tbody>
-          {orders.length > 0 ? (
-            orders.map((order) => (
-              <tr
-                key={order.id}
-                onClick={() => handleRowClick(order)}
-                style={{ cursor: "pointer" }}
-              >
-                <td>{order.fullName}</td>
-                <td>{order.phoneNumber}</td>
-                <td>{new Date(order.orderDate).toLocaleString()}</td>
-                <td>
-                  {order.paymentMethod === "VN_PAY"
-                    ? "Thanh toán bằng VN PAY"
-                    : "Thanh toán khi nhận hàng"}
-                </td>
-                <td>
-                  {order.status === "COMPLETED"
-                    ? "Đã hoàn thành"
-                    : order.status === "PENDING"
-                    ? "Đang xử lý"
-                    : order.status}
-                </td>
-                <td>{MoneyFormat(order.totalAmount)}</td>
-              </tr>
-            ))
-          ) : (
-            <tr>
-              <td colSpan="6" className="text-center">
-                Không có đơn hàng
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
+  const loadOrders = async () => {
+    try {
+      const response = await getMyOrders();
+      if (response.code === 1000) {
+        const sorted = response.result.sort((a, b) => new Date(b.orderDate) - new Date(a.orderDate));
+        setOrders(sorted);
+        return sorted; 
+      } else {
+        setError(new Error(response.message || "Lỗi tải dữ liệu"));
+      }
+    } catch (err) {
+      setError(err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-      {/* Modal chi tiết đơn hàng (Đã Cải Tiến) */}
-      {selectedOrder && (
-        <Modal show={showModal} onHide={handleClose} size="xl">
-          <Modal.Header className="bg-light">
-            <Modal.Title className="text-primary">
-              Chi tiết đơn hàng #{selectedOrder.id}
-            </Modal.Title>
-          </Modal.Header>
-          <Modal.Body>
-            {loadingDetails ? (
-              <p className="text-center py-5">Đang tải chi tiết đơn hàng...</p>
-            ) : (
-              <Row>
-                {/* Cột 1: Thông tin giao hàng & Thanh toán */}
-                <Col md={4} className="border-end">
-                  <Card className="shadow-sm mb-3">
-                    <Card.Header className="bg-warning text-dark">
-                      **Thông tin giao nhận**
-                    </Card.Header>
-                    <ListGroup variant="flush">
-                      <ListGroup.Item>
-                        <strong>Mã đơn:</strong> {selectedOrder.id}
-                      </ListGroup.Item>
-                      <ListGroup.Item>
-                        <strong>Người nhận:</strong> {selectedOrder.fullName}
-                      </ListGroup.Item>
-                      <ListGroup.Item>
-                        <strong>SĐT:</strong> {selectedOrder.phoneNumber}
-                      </ListGroup.Item>
-                      <ListGroup.Item>
-                        <strong>Ngày đặt:</strong>{" "}
-                        {new Date(selectedOrder.orderDate).toLocaleString()}
-                      </ListGroup.Item>
-                      <ListGroup.Item>
-                        <strong>Địa chỉ:</strong>{" "}
-                        {selectedOrder.shippingAddress}
-                      </ListGroup.Item>
-                    </ListGroup>
-                  </Card>
+  // --- MỚI: Logic Filter đơn hàng ---
+  const filteredOrders = useMemo(() => {
+    return orders.filter(order => {
+        // 1. Lọc theo trạng thái
+        const matchStatus = filterStatus === "ALL" || order.status === filterStatus;
 
-                  <Card className="shadow-sm">
-                    <Card.Header className="bg-warning text-dark">
-                      **Thanh toán & Trạng thái**
-                    </Card.Header>
-                    <ListGroup variant="flush">
-                      <ListGroup.Item>
-                        <strong>Thanh toán:</strong>{" "}
-                        {selectedOrder.paymentMethod === "VN_PAY"
-                          ? "Thanh toán bằng VN PAY"
-                          : "Thanh toán khi nhận hàng"}
-                      </ListGroup.Item>
-                      <ListGroup.Item>
-                        <strong>Voucher:</strong>{" "}
-                        {orderDetails.voucher
-                          ? `${orderDetails.voucher.name} (${orderDetails.voucher.discount}%)`
-                          : "Không có"}
-                      </ListGroup.Item>
-                      <ListGroup.Item>
-                        <strong>Trạng thái:</strong>{" "}
-                        <span
-                          className={`badge ${
-                            selectedOrder.status === "COMPLETED"
-                              ? "bg-success"
-                              : selectedOrder.status === "PENDING"
-                              ? "bg-warning text-dark"
-                              : "bg-danger"
-                          }`}
-                        >
-                          {selectedOrder.status === "COMPLETED"
-                            ? "Đã hoàn thành"
-                            : selectedOrder.status === "PENDING"
-                            ? "Đang xử lý"
-                            : selectedOrder.status}
-                        </span>
-                      </ListGroup.Item>
-                    </ListGroup>
-                  </Card>
-                </Col>
+        // 2. Lọc theo ngày (So sánh chuỗi YYYY-MM-DD)
+        let matchDate = true;
+        if (filterDate) {
+            const orderDateStr = new Date(order.orderDate).toISOString().split('T')[0]; // Lấy YYYY-MM-DD
+            matchDate = orderDateStr === filterDate;
+        }
 
-                {/* Cột 2: Danh sách Sản phẩm & Tổng kết tiền */}
-                <Col md={8}>
-                  <h5 className="mb-3 text-primary">
-                    Sản phẩm đã đặt ({orderDetails.products.length})
-                  </h5>
-                  <div
-                    className="list-group overflow-auto"
-                    style={{ maxHeight: "400px" }}
-                  >
-                    {orderDetails.products.map((item) => (
-                      <ListGroup.Item
-                        key={item.id}
-                        className="d-flex align-items-center justify-content-between mb-2 p-3 border rounded"
-                      >
-                        <div className="d-flex align-items-center">
-                          {item.images && item.images[0] && (
-                            <img
-                              src={item.images[0].url}
-                              alt={item.name}
-                              width="80"
-                              className="me-3 rounded shadow-sm"
-                            />
-                          )}
-                          <div>
-                            <strong className="d-block">{item.name}</strong>
-                            <small className="text-muted">
-                              Giá: {MoneyFormat(item.price)} x {item.quantity}
-                            </small>
-                          </div>
-                        </div>
-                        <div className="text-end">
-                          <span className="text-muted d-block">
-                            Thành tiền:
-                          </span>
-                          <strong className="text-success">
-                            {MoneyFormat(item.price * item.quantity)}
-                          </strong>
-                        </div>
-                      </ListGroup.Item>
-                    ))}
-                  </div>
+        return matchStatus && matchDate;
+    });
+  }, [orders, filterStatus, filterDate]);
 
-                  {/* Tổng kết tiền */}
-                  <Card className="mt-4 bg-light shadow-sm">
-                    <Card.Body>
-                      <h5 className="card-title text-dark">
-                        Tổng kết đơn hàng
-                      </h5>
-                      <hr />
-                      <Row className="mb-2">
-                        <Col>Tổng tiền hàng:</Col>
-                        <Col className="text-end">
-                          {MoneyFormat(
-                            calculateSubtotal(orderDetails.products)
-                          )}
-                        </Col>
-                      </Row>
-                      <Row className="mb-2">
-                        <Col>Phí giao hàng:</Col>
-                        <Col className="text-end">
-                          {MoneyFormat(SHIPPING_FEE)}
-                        </Col>
-                      </Row>
-                      <Row className="mb-2 text-success">
-                        <Col>
-                          Chiết khấu Voucher (
-                          {orderDetails.voucher?.discount || 0}%):
-                        </Col>
-                        <Col className="text-end">
-                          {MoneyFormat(
-                            calculateSubtotal(orderDetails.products) *
-                              (orderDetails.voucher?.discount / 100 || 0)
-                          )}
-                        </Col>
-                      </Row>
-                      <Row className="mt-3 border-top pt-2">
-                        <Col>
-                          <strong>Tổng thanh toán:</strong>
-                        </Col>
-                        <Col className="text-end">
-                          <h4 className="text-primary">
-                            {MoneyFormat(selectedOrder.totalAmount)}
-                          </h4>
-                        </Col>
-                      </Row>
-                    </Card.Body>
-                  </Card>
-                </Col>
-              </Row>
-            )}
-          </Modal.Body>
-          <Modal.Footer>
-            <Button variant="secondary" onClick={handleClose}>
-              Đóng
-            </Button>
-          </Modal.Footer>
-        </Modal>
-      )}
-    </div>
-  );
+  const handleRowClick = async (order) => {
+    setSelectedOrder(order);
+    setShowModal(true);
+    setLoadingDetails(true);
+    
+    try {
+      const productDetailsPromises = order.items.map(async (item) => {
+        try {
+            const product = await getProductById(item.productId);
+            return { ...product, quantity: item.quantity, price: product.price || 0 };
+        } catch {
+            return { id: item.productId, name: "Sản phẩm lỗi", price: 0, quantity: item.quantity };
+        }
+      });
+      const products = await Promise.all(productDetailsPromises);
+      
+      let voucher = null;
+      if (order.voucherId) {
+          try { voucher = await getVoucherById(order.voucherId); } catch {}
+      }
+
+      const subtotal = calculateSubtotal(products);
+      const discountRate = voucher?.discount / 100 || 0;
+      const finalTotal = subtotal - (subtotal * discountRate) + SHIPPING_FEE;
+
+      setOrderDetails({ products, voucher, calculatedTotal: finalTotal });
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingDetails(false);
+    }
+  };
+
+  const handleClose = () => {
+    setShowModal(false);
+    setSelectedOrder(null);
+  };
+
+  if (loading) return <div className="text-center mt-5">Đang tải dữ liệu...</div>;
+
+
+  return (
+    <div className="container mt-4">
+      {/* LOADING OVERLAY */}
+      {isProcessing && (
+        <div className="order-overlay">
+            <div className="order-spinner"></div>
+        </div>
+      )}
+
+      <h2 className="mb-4 text-center">Quản Lý Đơn Hàng</h2>
+
+      {/* --- MỚI: THANH FILTER --- */}
+      <Card className="mb-4 shadow-sm bg-light">
+        <Card.Body className="py-3">
+            <Row className="align-items-end">
+                <Col md={4}>
+                    <Form.Group>
+                        <Form.Label className="fw-bold">Lọc theo trạng thái:</Form.Label>
+                        <Form.Select 
+                            value={filterStatus} 
+                            onChange={(e) => setFilterStatus(e.target.value)}
+                        >
+                            <option value="ALL">Tất cả trạng thái</option>
+                            {Object.keys(statusMap).map(key => (
+                                <option key={key} value={key}>{statusMap[key]}</option>
+                            ))}
+                        </Form.Select>
+                    </Form.Group>
+                </Col>
+                <Col md={4}>
+                    <Form.Group>
+                        <Form.Label className="fw-bold">Lọc theo ngày đặt:</Form.Label>
+                        <Form.Control 
+                            type="date" 
+                            value={filterDate} 
+                            onChange={(e) => setFilterDate(e.target.value)} 
+                        />
+                    </Form.Group>
+                </Col>
+                <Col md={4}>
+                    <Button 
+                        variant="outline-secondary" 
+                        className="w-100"
+                        onClick={() => { setFilterStatus("ALL"); setFilterDate(""); }}
+                    >
+                        Xóa bộ lọc
+                    </Button>
+                </Col>
+            </Row>
+        </Card.Body>
+      </Card>
+      
+      <table className="table table-bordered table-hover shadow-sm">
+        <thead className="table-dark">
+            <tr>
+                <th>Khách hàng</th>
+                <th>SĐT</th>
+                <th>Ngày đặt</th>
+                <th>Trạng thái</th>
+                <th>Tổng tiền</th>
+            </tr>
+        </thead>
+        <tbody>
+            {/* SỬ DỤNG filteredOrders THAY VÌ orders */}
+            {filteredOrders.length > 0 ? (
+                filteredOrders.map(order => (
+                    <tr key={order.id} onClick={() => handleRowClick(order)} style={{cursor: 'pointer'}}>
+                        <td>{order.fullName}</td>
+                        <td>{order.phoneNumber}</td>
+                        <td>{new Date(order.orderDate).toLocaleString('vi-VN')}</td>
+                        <td>
+                            <span className={`badge ${statusColorMap[order.status]}`}>
+                                {statusMap[order.status] || order.status}
+                            </span>
+                        </td>
+                        <td className="text-end fw-bold">{MoneyFormat(order.totalAmount)}</td>
+                    </tr>
+                ))
+            ) : (
+                <tr>
+                    <td colSpan="5" className="text-center py-4">Không tìm thấy đơn hàng phù hợp</td>
+                </tr>
+            )}
+        </tbody>
+      </table>
+
+      {/* MODAL CHI TIẾT */}
+      {selectedOrder && (
+        <Modal show={showModal} onHide={handleClose} size="xl">
+            <Modal.Header closeButton>
+                <Modal.Title>Chi tiết đơn hàng #{selectedOrder.id.substring(0,8)}...</Modal.Title>
+            </Modal.Header>
+            <Modal.Body>
+                {loadingDetails ? (
+                    <p className="text-center">Đang tải chi tiết...</p>
+                ) : (
+                    <Row>
+                        <Col md={5}>
+                            {/* CARD INFO: FULL THÔNG TIN */}
+                            <Card className="mb-3 shadow-sm">
+                                <Card.Header style={{ backgroundColor: '#ffc107', color: '#000', fontWeight: 'bold' }}>
+                                    Thông tin đơn hàng
+                                </Card.Header>
+                                <ListGroup variant="flush">
+                                    <ListGroup.Item><strong>Khách hàng:</strong> {selectedOrder.fullName}</ListGroup.Item>
+                                    <ListGroup.Item><strong>SĐT:</strong> {selectedOrder.phoneNumber}</ListGroup.Item>
+                                    <ListGroup.Item>
+                                        <strong>Ngày đặt: </strong> 
+                                        {new Date(selectedOrder.orderDate).toLocaleString('vi-VN')}
+                                    </ListGroup.Item>
+                                    
+                                    {/* --- MỚI: HIỂN THỊ NGÀY GIAO HÀNG NẾU DELIVERED --- */}
+                                    {selectedOrder.status === "DELIVERED" && selectedOrder.shippingDate && (
+                                        <ListGroup.Item className="bg-success bg-opacity-10">
+                                            <strong className="text-success">Ngày giao thành công: </strong> <br/>
+                                            {new Date(selectedOrder.shippingDate).toLocaleString('vi-VN')}
+                                        </ListGroup.Item>
+                                    )}
+
+                                    <ListGroup.Item>
+                                        <strong>Địa chỉ: </strong> 
+                                        {selectedOrder.shippingAddress}
+                                    </ListGroup.Item>
+                                    <ListGroup.Item>
+                                        <strong>Thanh toán: </strong> 
+                                        <span className="text-primary fw-bold">
+                                            {selectedOrder.paymentMethod === "VN_PAY" ? "VN PAY" : "Thanh toán khi nhận hàng"}
+                                        </span>
+                                    </ListGroup.Item>
+                                    <ListGroup.Item>
+                                        <strong>Trạng thái: </strong> 
+                                        <span className={`badge fs-6 mt-1 ms-2 ${statusColorMap[selectedOrder.status]}`}>
+                                            {statusMap[selectedOrder.status]}
+                                        </span>
+                                    </ListGroup.Item>
+
+                                    {/* HIỂN THỊ LÝ DO HỦY NẾU FAILED */}
+                                    {selectedOrder.status === "FAILED" && (
+                                        <ListGroup.Item className="bg-danger bg-opacity-10">
+                                            <strong className="text-danger">Lý do hủy/thất bại: </strong> 
+                                            <p className="mb-0 mt-1 fst-italic">
+                                                "{selectedOrder.description || "Không có lý do cụ thể"}"
+                                            </p>
+                                        </ListGroup.Item>
+                                    )}
+                                </ListGroup>
+                            </Card>
+                            
+                        </Col>
+
+                        <Col md={7}>
+                            <h5 className="mb-3 text-primary">Danh sách sản phẩm ({orderDetails.products.length})</h5>
+                             <div className="list-group overflow-auto border rounded mb-3" style={{ maxHeight: "500px" }}>
+                                {orderDetails.products.map((item) => (
+                                  <div key={item.id} className="list-group-item d-flex align-items-center justify-content-between">
+                                    <div className="d-flex align-items-center">
+                                      {item.images?.[0] && (
+                                        <img src={item.images[0].url} alt="" width="60" className="me-3 rounded border" />
+                                      )}
+                                      <div>
+                                        <div className="fw-bold">{item.name}</div>
+                                        <small>{MoneyFormat(item.price)} x {item.quantity}</small>
+                                      </div>
+                                    </div>
+                                    <div className="fw-bold">{MoneyFormat(item.price * item.quantity)}</div>
+                                  </div>
+                                ))}
+                             </div>
+                             
+                             <Card className="bg-light">
+                                <Card.Body>
+                                    <div className="d-flex justify-content-between mb-2">
+                                        <span>Tạm tính:</span>
+                                        <span>{MoneyFormat(calculateSubtotal(orderDetails.products))}</span>
+                                    </div>
+                                    <div className="d-flex justify-content-between mb-2">
+                                        <span>Phí ship:</span>
+                                        <span>{MoneyFormat(SHIPPING_FEE)}</span>
+                                    </div>
+                                    <div className="d-flex justify-content-between mb-2 text-success">
+                                        <span>Voucher:</span>
+                                        <span>-{MoneyFormat(calculateSubtotal(orderDetails.products) * (orderDetails.voucher?.discount / 100 || 0))}</span>
+                                    </div>
+                                    <hr/>
+                                    <div className="d-flex justify-content-between fs-4 fw-bold text-primary">
+                                        <span>Tổng cộng:</span>
+                                        <span>{MoneyFormat(selectedOrder.totalAmount)}</span>
+                                    </div>
+                                </Card.Body>
+                             </Card>
+                        </Col>
+                    </Row>
+                )}
+            </Modal.Body>
+        </Modal>
+      )}
+    </div>
+  );
 }
 
 export default MyOrder;

@@ -26,6 +26,16 @@ export const getMyOrders = async () => {
     }
 };
 
+export const updateStatusOrder = async (updateStatusOrderData) => {
+    try {
+        const response = await api.put("/order/update-status", updateStatusOrderData);
+        return response.data;
+    } catch (err) {
+        console.error("Lỗi khi tạo đơn hàng:", err);
+        throw err;
+    }
+};
+
 export const getAllOrder = async () => {
     const token = localStorage.getItem("accessToken");
     const customerId = parseJwt(token)?.customerID;

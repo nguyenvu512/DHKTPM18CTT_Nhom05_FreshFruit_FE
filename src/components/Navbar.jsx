@@ -188,7 +188,7 @@ function NavBar() {
                   <Dropdown.Item as={Link} to="/profile">
                     Thông tin
                   </Dropdown.Item>
-                  <Dropdown.Item as={Link} to="/orders">
+                  <Dropdown.Item as={Link} to="my-order">
                     Đơn hàng của tôi
                   </Dropdown.Item>
 

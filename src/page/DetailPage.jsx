@@ -1,16 +1,21 @@
 // src/pages/DetailPage.jsx
-import React, { useState } from "react";
-import { useLocation } from "react-router-dom";
-import { useCart } from "../context/CartContext"; // ✅ KHÔNG import CartContext nữa
+import React, { useState, useEffect } from "react";
+import { useParams, useLocation } from "react-router-dom";
+import { useCart } from "../context/CartContext";
+import { getProductById } from "../api/productApi";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 function DetailPage() {
   const { id } = useParams();
   const location = useLocation();
-  const { product } = location.state || {};
+  const [product, setProduct] = useState(location.state?.product || null);
   const [quantity, setQuantity] = useState(1);
-  const [mainImage, setMainImage] = useState(null);
+  const [mainImage, setMainImage] = useState(
+    location.state?.product?.images?.[0] || null
+  );
+
+  const { addToCart } = useCart(); // dùng context
 
   useEffect(() => {
     if (location.state?.product && location.state.product.id === id) {
@@ -31,8 +36,6 @@ function DetailPage() {
     }
   }, [id, location.state]);
 
-  const { addToCart } = useCart(); // ✅ LẤY addToCart đúng cách
-
   if (!product)
     return <div className="text-center mt-4">Đang tải sản phẩm…</div>;
 
@@ -51,23 +54,69 @@ function DetailPage() {
       <ToastContainer position="top-right" autoClose={2000} hideProgressBar />
 
       <div className="row">
+        {/* Hình ảnh */}
         <div className="col-md-6 text-center">
-          {product.images && (
-            <img
-              src={product.images[0].url}
-              alt={product.name}
-              className="img-fluid rounded shadow"
-            />
+          {mainImage ? (
+            <>
+              <img
+                src={mainImage.url}
+                alt={product.name}
+                className="img-fluid rounded shadow mb-3"
+                style={{
+                  maxHeight: "400px",
+                  width: "100%",
+                  objectFit: "cover",
+                }}
+              />
+              <div className="d-flex flex-wrap justify-content-center gap-2">
+                {product.images.map((img, index) => (
+                  <img
+                    key={index}
+                    src={img.url}
+                    alt={`${product.name} ${index + 1}`}
+                    style={{
+                      width: "80px",
+                      height: "80px",
+                      objectFit: "cover",
+                      borderRadius: "4px",
+                      cursor: "pointer",
+                      border:
+                        img.url === mainImage.url
+                          ? "2px solid orange"
+                          : "1px solid #ddd",
+                    }}
+                    onClick={() => setMainImage(img)}
+                  />
+                ))}
+              </div>
+            </>
+          ) : (
+            <p>Không có hình ảnh.</p>
           )}
         </div>
 
+        {/* Thông tin sản phẩm */}
         <div className="col-md-6">
-          <h2 className="text-warning">{product.name}</h2>
+          <h2 className="text-warning mb-3">{product.name}</h2>
+          <p>
+            Tình trạng:{" "}
+            {product.inventory > 0 ? (
+              <span className="text-success">Còn {product.inventory}kg</span>
+            ) : (
+              <span className="text-danger">Hết hàng</span>
+            )}
+          </p>
+          {product.origin && (
+            <p>
+              <strong>Nguồn gốc:</strong> {product.origin}
+            </p>
+          )}
 
           <h3 className="text-danger mb-3">
-            {product.price.toLocaleString()} đ
+            {new Intl.NumberFormat("vi-VN").format(product.price)} đ / 1kg
           </h3>
 
+          {/* Chọn số lượng */}
           <div className="d-flex align-items-center mb-3">
             <button
               className="btn btn-outline-secondary"
@@ -75,7 +124,6 @@ function DetailPage() {
             >
               -
             </button>
-
             <input
               type="text"
               value={quantity}
@@ -83,7 +131,6 @@ function DetailPage() {
               className="form-control text-center mx-2"
               style={{ width: "60px" }}
             />
-
             <button
               className="btn btn-outline-secondary"
               onClick={() => setQuantity(quantity + 1)}
@@ -92,6 +139,7 @@ function DetailPage() {
             </button>
           </div>
 
+          {/* Nút thêm vào giỏ */}
           <button
             className="btn btn-warning btn-lg w-100 mb-4"
             onClick={handleAddToCart}
@@ -105,7 +153,8 @@ function DetailPage() {
           >
             {product.inventory > 0 ? "THÊM VÀO GIỎ" : "HẾT HÀNG"}
           </button>
-          {/* Mô tả và nguồn gốc */}
+
+          {/* Mô tả sản phẩm */}
           {product.description || product.origin ? (
             <div className="mt-4">
               {product.description && (
@@ -114,6 +163,7 @@ function DetailPage() {
                   <p>{product.description}</p>
                 </>
               )}
+              
             </div>
           ) : (
             <p>Chưa có mô tả sản phẩm.</p>

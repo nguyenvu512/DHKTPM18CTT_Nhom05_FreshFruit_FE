@@ -7,25 +7,20 @@ import {
   FormControl,
   Button,
   Dropdown,
+  Badge,
 } from "react-bootstrap";
 import { Link } from "react-router-dom";
 import { FiUser, FiShoppingCart, FiLogOut } from "react-icons/fi";
 import "../style/NavBar.css";
+import { useCart } from "../context/CartContext";
 
-// Hàm decode JWT để lấy payload
+// Decode JWT
 const parseJwt = (token) => {
   try {
     const base64Url = token.split(".")[1];
     const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
-    const jsonPayload = decodeURIComponent(
-      atob(base64)
-        .split("")
-        .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
-        .join("")
-    );
-    return JSON.parse(jsonPayload);
+    return JSON.parse(atob(base64));
   } catch (e) {
-    console.log(e);
     return null;
   }
 };
@@ -33,12 +28,18 @@ const parseJwt = (token) => {
 function NavBar() {
   const [customerName, setCustomerName] = useState(null);
 
-  // Kiểm tra token khi component mount
+  // 🟡 Lấy global cart từ CartContext
+  const { cart } = useCart();
+
+  // Tính tổng quantity trong cart
+  const cartCount = cart?.items?.reduce((sum, item) => sum + item.quantity, 0) || 0;
+
+  // Kiểm tra token khi NavBar load
   useEffect(() => {
     const token = localStorage.getItem("accessToken");
     if (token) {
       const payload = parseJwt(token);
-      if (payload && payload.customerName) {
+      if (payload?.customerName) {
         setCustomerName(payload.customerName);
       }
     }
@@ -54,24 +55,22 @@ function NavBar() {
   return (
     <Navbar bg="warning" expand="lg" className="py-2 shadow-sm">
       <Container>
-        {/* Brand chỉ chữ */}
         <Navbar.Brand as={Link} to="/" className="brand-text fw-bold">
           FreshFruits
         </Navbar.Brand>
 
         <Navbar.Toggle aria-controls="basic-navbar-nav" />
+
         <Navbar.Collapse id="basic-navbar-nav">
-          {/* Ô tìm kiếm */}
+          {/* Search */}
           <Form className="d-flex mx-auto my-2 my-lg-0 w-50">
-            <FormControl
-              type="search"
-              placeholder="Tìm kiếm sản phẩm..."
-              className="me-2"
-            />
+            <FormControl type="search" placeholder="Tìm kiếm sản phẩm..." className="me-2" />
           </Form>
 
-          {/* Menu với icon hoặc tên user */}
+          {/* Menu phải */}
           <Nav className="ms-auto fw-semibold">
+
+            {/* User dropdown hoặc icon login */}
             {customerName ? (
               <Dropdown align="end">
                 <Dropdown.Toggle
@@ -84,12 +83,9 @@ function NavBar() {
                 </Dropdown.Toggle>
 
                 <Dropdown.Menu>
-                  <Dropdown.Item as={Link} to="/profile">
-                    Thông tin
-                  </Dropdown.Item>
-                  <Dropdown.Item as={Link} to="/orders">
-                    Đơn hàng của tôi
-                  </Dropdown.Item>
+                  <Dropdown.Item as={Link} to="/profile">Thông tin</Dropdown.Item>
+                  <Dropdown.Item as={Link} to="/orders">Đơn hàng của tôi</Dropdown.Item>
+
                   <Dropdown.Divider />
                   <Dropdown.Item onClick={handleLogout}>
                     <FiLogOut className="me-2" />
@@ -103,9 +99,29 @@ function NavBar() {
               </Nav.Link>
             )}
 
-            <Nav.Link as={Link} to="/cart" className="text-dark mx-2 fs-4">
+            {/* 🛒 ICON CART + BADGE */}
+            <Nav.Link
+              as={Link}
+              to="/cart"
+              className="text-dark mx-2 position-relative fs-4"
+            >
               <FiShoppingCart />
+
+              <Badge
+                bg="danger"
+                pill
+                className="position-absolute"
+                style={{
+                  fontSize: "0.65rem",
+                  top: "6px",
+                  right: "-9px",
+                }}
+              >
+                {cartCount}
+              </Badge>
+
             </Nav.Link>
+
           </Nav>
         </Navbar.Collapse>
       </Container>

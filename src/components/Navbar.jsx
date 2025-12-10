@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Navbar,
   Nav,
@@ -9,16 +9,12 @@ import {
   Dropdown,
   Badge,
 } from "react-bootstrap";
-import { Link } from "react-router-dom";
-import {
-  FiUser,
-  FiShoppingCart,
-  FiLogOut,
-  FiSettings
-} from "react-icons/fi";
-import "../style/NavBar.css";
+import { Link, useNavigate } from "react-router-dom";
+import { FiUser, FiShoppingCart, FiLogOut, FiSettings } from "react-icons/fi";
 
-import * as cartApi from "../api/cartApi";
+import "../style/NavBar.css";
+import { useCart } from "../context/CartContext";
+import { getAllProducts } from "../api/productApi";
 
 // Decode JWT
 const parseJwt = (token) => {
@@ -32,17 +28,32 @@ const parseJwt = (token) => {
         .join("")
     );
     return JSON.parse(jsonPayload);
-  } catch (e) {
+  } catch {
     return null;
   }
 };
 
 function NavBar() {
+  const navigate = useNavigate();
+  const wrapperRef = useRef(null);
+
+  const { cart } = useCart(); // 👉 LẤY GIỎ GLOBAL
+
   const [customerName, setCustomerName] = useState(null);
   const [role, setRole] = useState(null);
-  const [customerId, setCustomerId] = useState(null);
-  const [cartCount, setCartCount] = useState(0);
 
+  // ----------------------
+  // 🛒 Cart count — lấy từ CartContext (KHÔNG FETCH API)
+  // ----------------------
+  const cartCount = cart?.items?.length || 0;
+
+  // ----------------------
+  // 🔍 Search suggestion
+  // ----------------------
+  const [searchTerm, setSearchTerm] = useState("");
+  const [suggestions, setSuggestions] = useState([]);
+
+  // Load token data
   useEffect(() => {
     const token = localStorage.getItem("accessToken");
 
@@ -52,40 +63,55 @@ function NavBar() {
       if (payload) {
         setCustomerName(payload.customerName || null);
         setRole(payload.scope || null);
-        setCustomerId(payload.customerID || null);
       }
     }
   }, []);
 
-  // Load cart khi có customerId
+  // Search suggestion fetch
   useEffect(() => {
-    if (!customerId) return;
+    const fetchSuggestions = async () => {
+      if (!searchTerm.trim()) {
+        setSuggestions([]);
+        return;
+      }
 
-    const fetchCart = async () => {
       try {
-        const res = await cartApi.getCart(customerId);
-
-        if (!res || !res.items) {
-          setCartCount(0);
-          return;
-        }
-
-        const total = res.items.reduce((sum, item) => sum + item.quantity, 0);
-        setCartCount(total);
+        const data = await getAllProducts();
+        const filtered = data.filter((p) =>
+          p.name.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+        setSuggestions(filtered.slice(0, 5));
       } catch (err) {
-        console.error("Lỗi load cart:", err);
+        console.error("Search error:", err);
       }
     };
 
-    fetchCart();
-  }, [customerId]);
+    fetchSuggestions();
+  }, [searchTerm]);
+
+  // Click outside suggestion box
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target)) {
+        setSuggestions([]);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Select product from suggestion
+  const handleSelectProduct = (product) => {
+    setSearchTerm("");
+    setSuggestions([]);
+    navigate(`/product/${product.id}`, { state: { product } });
+  };
 
   // Logout
   const handleLogout = () => {
     localStorage.removeItem("accessToken");
     setCustomerName(null);
     setRole(null);
-    setCustomerId(null);
     window.location.href = "/";
   };
 
@@ -97,20 +123,56 @@ function NavBar() {
         </Navbar.Brand>
 
         <Navbar.Toggle aria-controls="basic-navbar-nav" />
+
         <Navbar.Collapse id="basic-navbar-nav">
-
           {/* Search */}
-          <Form className="d-flex mx-auto my-2 my-lg-0 w-50">
-            <FormControl
-              type="search"
-              placeholder="Tìm kiếm sản phẩm..."
-              className="me-2"
-            />
-          </Form>
+          <div className="mx-auto w-50 position-relative" ref={wrapperRef}>
+            <Form className="d-flex">
+              <FormControl
+                type="search"
+                placeholder="Tìm kiếm sản phẩm..."
+                className="me-2"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </Form>
 
+            {/* Suggestions */}
+            {suggestions.length > 0 && (
+              <div
+                className="bg-white border shadow-sm position-absolute w-100 mt-1 rounded"
+                style={{ zIndex: 1050 }}
+              >
+                {suggestions.map((p) => (
+                  <div
+                    key={p.id}
+                    className="d-flex align-items-center px-2 py-2"
+                    onClick={() => handleSelectProduct(p)}
+                    style={{ cursor: "pointer" }}
+                  >
+                    {p.images?.[0]?.url && (
+                      <img
+                        src={p.images[0].url}
+                        alt={p.name}
+                        style={{
+                          width: 40,
+                          height: 40,
+                          objectFit: "cover",
+                          borderRadius: 4,
+                          marginRight: 10,
+                        }}
+                      />
+                    )}
+                    <span>{p.name}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Right menu */}
           <Nav className="ms-auto fw-semibold">
-
-            {/* Nếu đã login */}
+            {/* User */}
             {customerName ? (
               <Dropdown align="end">
                 <Dropdown.Toggle
@@ -126,7 +188,7 @@ function NavBar() {
                   <Dropdown.Item as={Link} to="/profile">
                     Thông tin
                   </Dropdown.Item>
-                  <Dropdown.Item as={Link} to="/my-order">
+                  <Dropdown.Item as={Link} to="/orders">
                     Đơn hàng của tôi
                   </Dropdown.Item>
 
@@ -153,39 +215,27 @@ function NavBar() {
               </Nav.Link>
             )}
 
-            {/* Giỏ hàng */}
+            {/* Cart */}
             <Nav.Link
               as={Link}
               to="/cart"
-              className="text-dark mx-2 fs-4 position-relative"
+              className="text-dark mx-2 position-relative fs-4"
             >
               <FiShoppingCart />
 
-              {cartCount > 0 && (
-                <span
-                  style={{
-                    position: "absolute",
-                    top: "8px",
-                    right: "-8px",
-                    background: "red",
-                    color: "white",
-                    fontSize: "0.6rem",
-                    padding: "2px 6px",
-                    minWidth: "18px",
-                    height: "18px",
-                    display: "flex",
-                    justifyContent: "center",
-                    alignItems: "center",
-                    borderRadius: "50%",
-                    fontWeight: "bold",
-                    lineHeight: "1",
-                  }}
-                >
-                  {cartCount}
-                </span>
-              )}
+              <Badge
+                bg="danger"
+                pill
+                className="position-absolute"
+                style={{
+                  fontSize: "0.65rem",
+                  top: "6px",
+                  right: "-9px",
+                }}
+              >
+                {cartCount}
+              </Badge>
             </Nav.Link>
-
           </Nav>
         </Navbar.Collapse>
       </Container>

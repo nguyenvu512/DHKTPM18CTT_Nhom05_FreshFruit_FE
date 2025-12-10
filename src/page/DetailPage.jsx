@@ -1,30 +1,14 @@
-import React, { useState, useEffect } from "react";
-import { useParams, useLocation } from "react-router-dom";
-import * as cartApi from "../api/cartApi";
-import { getProductById } from "../api/productApi";
+// src/pages/DetailPage.jsx
+import React, { useState } from "react";
+import { useLocation } from "react-router-dom";
+import { useCart } from "../context/CartContext"; // ✅ KHÔNG import CartContext nữa
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-
-const parseJwt = (token) => {
-  try {
-    const base64Url = token.split(".")[1];
-    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
-    const jsonPayload = decodeURIComponent(
-      atob(base64)
-        .split("")
-        .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
-        .join("")
-    );
-    return JSON.parse(jsonPayload);
-  } catch {
-    return null;
-  }
-};
 
 function DetailPage() {
   const { id } = useParams();
   const location = useLocation();
-  const [product, setProduct] = useState(location.state?.product || null);
+  const { product } = location.state || {};
   const [quantity, setQuantity] = useState(1);
   const [mainImage, setMainImage] = useState(null);
 
@@ -47,24 +31,14 @@ function DetailPage() {
     }
   }, [id, location.state]);
 
+  const { addToCart } = useCart(); // ✅ LẤY addToCart đúng cách
+
   if (!product)
     return <div className="text-center mt-4">Đang tải sản phẩm…</div>;
 
   const handleAddToCart = async () => {
-    const token = localStorage.getItem("accessToken");
-    if (!token) {
-      toast.warning("Vui lòng đăng nhập để thêm sản phẩm vào giỏ.");
-      return;
-    }
-
-    const customerId = parseJwt(token)?.customerID;
-    if (!customerId) {
-      toast.error("Token không hợp lệ. Vui lòng đăng nhập lại.");
-      return;
-    }
-
     try {
-      await cartApi.addToCart({ customerId, productId: product.id, quantity });
+      await addToCart(product.id, quantity);
       toast.success(`Đã thêm ${quantity} "${product.name}" vào giỏ hàng.`);
     } catch (err) {
       console.error(err);
@@ -77,67 +51,21 @@ function DetailPage() {
       <ToastContainer position="top-right" autoClose={2000} hideProgressBar />
 
       <div className="row">
-        {/* Hình ảnh */}
         <div className="col-md-6 text-center">
-          {mainImage ? (
-            <>
-              <img
-                src={mainImage.url}
-                alt={product.name}
-                className="img-fluid rounded shadow mb-3"
-                style={{
-                  maxHeight: "400px",
-                  width: "100%",
-                  objectFit: "cover",
-                }}
-              />
-
-              <div className="d-flex flex-wrap justify-content-center gap-2">
-                {product.images.map((img, index) => (
-                  <img
-                    key={index}
-                    src={img.url}
-                    alt={`${product.name} ${index + 1}`}
-                    style={{
-                      width: "80px",
-                      height: "80px",
-                      objectFit: "cover",
-                      borderRadius: "4px",
-                      cursor: "pointer",
-                      border:
-                        img.url === mainImage.url
-                          ? "2px solid orange"
-                          : "1px solid #ddd",
-                    }}
-                    onClick={() => setMainImage(img)}
-                  />
-                ))}
-              </div>
-            </>
-          ) : (
-            <p>Không có hình ảnh.</p>
+          {product.images && (
+            <img
+              src={product.images[0].url}
+              alt={product.name}
+              className="img-fluid rounded shadow"
+            />
           )}
         </div>
 
-        {/* Thông tin sản phẩm */}
         <div className="col-md-6">
-          <h2 className="text-warning mb-3">{product.name}</h2>
-          <p>
-            Tình trạng:{" "}
-            {product.inventory > 0 ? (
-              <span className="text-success">Còn {product.inventory}kg</span>
-            ) : (
-              <span className="text-danger">Hết hàng</span>
-            )}
-          </p>
-          {product.origin && (
-            <p>
-              <strong>Nguồn gốc:</strong> {product.origin}
-            </p>
-          )}
+          <h2 className="text-warning">{product.name}</h2>
 
           <h3 className="text-danger mb-3">
-            {new Intl.NumberFormat("vi-VN").format(product.price)} đ / 1kg
+            {product.price.toLocaleString()} đ
           </h3>
 
           <div className="d-flex align-items-center mb-3">
@@ -147,6 +75,7 @@ function DetailPage() {
             >
               -
             </button>
+
             <input
               type="text"
               value={quantity}
@@ -154,6 +83,7 @@ function DetailPage() {
               className="form-control text-center mx-2"
               style={{ width: "60px" }}
             />
+
             <button
               className="btn btn-outline-secondary"
               onClick={() => setQuantity(quantity + 1)}

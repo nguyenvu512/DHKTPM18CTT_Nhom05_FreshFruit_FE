@@ -1,28 +1,11 @@
-// src/pages/CartPage.jsx
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { Container, Row, Col, Card, Button, FormControl, Badge } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import * as cartApi from "../api/cartApi";
 import "../style/Cart.css";
+import { useCart } from "../context/CartContext";
 
-// Hàm decode JWT
-const parseJwt = (token) => {
-  try {
-    const base64Url = token.split(".")[1];
-    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
-    const jsonPayload = decodeURIComponent(
-      atob(base64)
-        .split("")
-        .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
-        .join("")
-    );
-    return JSON.parse(jsonPayload);
-  } catch {
-    return null;
-  }
-};
-
-// Component con QuantitySelector
+// Quantity Selector Component
 const QuantitySelector = ({ value, onChange }) => {
   return (
     <div className="d-flex align-items-center">
@@ -34,6 +17,7 @@ const QuantitySelector = ({ value, onChange }) => {
       >
         -
       </Button>
+
       <FormControl
         type="number"
         value={value}
@@ -45,6 +29,7 @@ const QuantitySelector = ({ value, onChange }) => {
         style={{ width: "50px", padding: "0.25rem" }}
         min={1}
       />
+
       <Button
         variant="outline-secondary"
         size="sm"
@@ -58,46 +43,36 @@ const QuantitySelector = ({ value, onChange }) => {
 };
 
 const CartPage = () => {
-  const [cart, setCart] = useState(null);
   const navigate = useNavigate();
 
-  const token = localStorage.getItem("accessToken");
-  const customerId = token ? parseJwt(token)?.customerID : null;
+  // 🟡 Lấy cart từ CartContext
+  const { cart, fetchCart, customerId } = useCart();
 
+  // Kiểm tra login
   useEffect(() => {
+    const token = localStorage.getItem("accessToken");
     if (!token || !customerId) {
       navigate("/login");
     }
-  }, [token, customerId, navigate]);
+  }, [customerId]);
 
-  const fetchCart = async () => {
-    try {
-      const data = await cartApi.getCart(customerId);
-      setCart(data);
-      console.log(cart)
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  useEffect(() => {
-    if (token && customerId) fetchCart();
-  }, [token, customerId]);
-
+  // Cập nhật số lượng
   const updateQuantity = async (productId, quantity) => {
     if (quantity < 1) return;
     await cartApi.updateCartItem({ customerId, productId, quantity });
-    fetchCart();
+    fetchCart(); // 🟢 cập nhật global cart
   };
 
+  // Xóa item
   const removeItem = async (productId) => {
     await cartApi.removeCartItem(customerId, productId);
-    fetchCart();
+    fetchCart(); // 🟢 cập nhật global cart
   };
 
+  // Clear cart
   const clearCart = async () => {
     await cartApi.clearCart(customerId);
-    fetchCart();
+    fetchCart(); // 🟢 cập nhật global cart
   };
 
   if (!cart) return <p className="text-center mt-4">Đang tải giỏ hàng…</p>;
@@ -105,6 +80,7 @@ const CartPage = () => {
   return (
     <Container className="py-4">
       <h2 className="mb-4 text-center fw-bold">Giỏ hàng của bạn</h2>
+
       {cart.items.length === 0 ? (
         <div className="text-center py-5">
           <h5>Giỏ hàng trống 😢</h5>
@@ -124,6 +100,7 @@ const CartPage = () => {
                   <th>Hành động</th>
                 </tr>
               </thead>
+
               <tbody>
                 {cart.items.map((item) => (
                   <tr key={item.productId}>
@@ -136,14 +113,18 @@ const CartPage = () => {
                       />
                       {item.productName}
                     </td>
+
                     <td className="text-success fw-bold">{item.price} đ</td>
+
                     <td>
                       <QuantitySelector
                         value={item.quantity}
                         onChange={(val) => updateQuantity(item.productId, val)}
                       />
                     </td>
+
                     <td className="fw-bold">{item.total} đ</td>
+
                     <td>
                       <Button
                         variant="outline-danger"
@@ -183,15 +164,22 @@ const CartPage = () => {
                           </Badge>
                         </div>
                       </Col>
+
                       <Col xs={8}>
                         <h6>{item.productName}</h6>
-                        <p className="text-success fw-bold mb-1">{item.price} đ</p>
+
+                        <p className="text-success fw-bold mb-1">
+                          {item.price} đ
+                        </p>
+
                         <QuantitySelector
                           value={item.quantity}
                           onChange={(val) => updateQuantity(item.productId, val)}
                         />
+
                         <div className="d-flex justify-content-between align-items-center mt-2">
                           <span className="fw-bold">{item.total} đ</span>
+
                           <Button
                             variant="outline-danger"
                             size="sm"
@@ -208,14 +196,17 @@ const CartPage = () => {
             </Row>
           </div>
 
-          {/* Sticky tổng tiền & thanh toán */}
+          {/* Summary */}
           <div className="cart-summary mt-4 p-3 shadow-sm rounded bg-light d-flex flex-column flex-md-row justify-content-between align-items-center">
             <div className="mb-2 mb-md-0">
               <h5 className="fw-bold mb-1">
                 Tổng tiền: <span className="text-success">{cart.totalPrice} đ</span>
               </h5>
-              <small className="text-muted">Đã bao gồm VAT (nếu có)</small>
+              <small className="text-muted">
+                Đã bao gồm VAT (nếu có)
+              </small>
             </div>
+
             <div className="d-flex flex-column flex-md-row">
               <Button
                 variant="danger"
@@ -224,6 +215,7 @@ const CartPage = () => {
               >
                 Xóa tất cả
               </Button>
+
               <Button
                 variant="success"
                 className="fw-bold"

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { getAllProducts } from "../api/productApi";
 import * as cartApi from "../api/cartApi";
+import { useCart } from "../context/CartContext";   // 👈 DÙNG CART CONTEXT
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
@@ -27,11 +28,13 @@ const ProductPreview = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  const { reloadCart } = useCart();  // 👈 DÙNG HÀM LOAD LẠI GIỎ HÀNG
+
   useEffect(() => {
     const fetchProducts = async () => {
       try {
         const data = await getAllProducts();
-        setProducts(data.slice(0, 8));
+        setProducts(data.slice(0, 8)); // Lấy 8 sản phẩm đầu
       } catch (err) {
         setError(err.message || "Something went wrong");
       } finally {
@@ -42,8 +45,8 @@ const ProductPreview = () => {
   }, []);
 
   const handleAddToCart = async (product, e) => {
-    e.preventDefault();  // Ngăn Link kích hoạt
-    e.stopPropagation(); // Ngăn click lan lên Link
+    e.preventDefault();
+    e.stopPropagation();
 
     const token = localStorage.getItem("accessToken");
     if (!token) {
@@ -58,8 +61,15 @@ const ProductPreview = () => {
     }
 
     try {
-      await cartApi.addToCart({ customerId, productId: product.id, quantity: 1 });
+      await cartApi.addToCart({
+        customerId,
+        productId: product.id,
+        quantity: 1,
+      });
+
       toast.success(`Đã thêm "${product.name}" vào giỏ hàng.`);
+
+      reloadCart(); // 👈 Cập nhật lại badge trong NavBar
     } catch (err) {
       console.error(err);
       toast.error("Thêm sản phẩm vào giỏ thất bại.");
@@ -67,12 +77,13 @@ const ProductPreview = () => {
   };
 
   if (loading) return <div className="text-center mt-4">Đang tải sản phẩm…</div>;
-  if (error) return <div className="text-center mt-4 text-danger">Lỗi: {error}</div>;
+  if (error)
+    return <div className="text-center mt-4 text-danger">Lỗi: {error}</div>;
 
   return (
     <div className="container mt-4">
       <ToastContainer position="top-right" autoClose={2000} hideProgressBar />
-      
+
       <h2 className="text-center mb-4">
         <span className="bg-warning text-white rounded-pill px-5 py-2 d-inline-block">
           Sản phẩm nổi bật
@@ -82,31 +93,37 @@ const ProductPreview = () => {
       <div className="row">
         {products.map((product) => (
           <div key={product.id} className="col-6 col-md-3 mb-4">
-            <div className="card h-100 text-center hover-shadow d-flex flex-column p-2">
-              
+            <div className="card h-100 text-center p-2 hover-shadow d-flex flex-column">
+
               {/* Link chỉ bọc hình + tên + giá */}
               <Link
                 to={`/product/${product.id}`}
                 state={{ product }}
                 className="text-decoration-none text-dark"
               >
-                {product.images && product.images.length > 0 && (
-                  <img
-                    src={product.images[0].url}
-                    className="card-img-top"
-                    alt={product.name}
-                    style={{ objectFit: "cover", width: "100%", height: "180px" }}
-                  />
-                )}
+                <img
+                  src={product.images?.[0]?.url || "/placeholder.jpg"}
+                  className="card-img-top"
+                  alt={product.name}
+                  style={{
+                    objectFit: "cover",
+                    width: "100%",
+                    height: "180px",
+                  }}
+                />
+
                 <h5 className="card-title text-truncate mt-2" title={product.name}>
                   {product.name}
                 </h5>
-                <p className="text-success fw-bold mb-2">{product.price} đ</p>
+
+                <p className="text-success fw-bold mb-2">
+                  {product.price} đ
+                </p>
               </Link>
 
-              {/* Nút thêm giỏ hàng riêng */}
+              {/* Nút thêm giỏ hàng */}
               <button
-                className="btn btn-outline-warning w-100 mt-auto add-cart-btn"
+                className="btn btn-outline-warning w-100 mt-auto"
                 onClick={(e) => handleAddToCart(product, e)}
               >
                 Thêm giỏ hàng

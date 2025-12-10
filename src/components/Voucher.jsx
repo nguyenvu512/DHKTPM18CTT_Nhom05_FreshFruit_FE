@@ -19,9 +19,6 @@ const Voucher = ({ setVoucher }) => {
   }, []);
 
   const handleVoucherChange = (e) => {
-    console.log("Event:", e.target); // ← Debug xem có phải input không
-    console.log("Value:", e.target.value); // ← Debug value
-    console.log("Type:", typeof e.target.value); // ← Debug kiểu
     
     const selectedId = e.target.value;
     setSelectedVoucher(selectedId);
@@ -46,7 +43,7 @@ const Voucher = ({ setVoucher }) => {
       </h4>
       <hr />
       <ul className="list-unstyled" style={{ padding: 0 }}>
-        {vouchers.map((voucher) => (
+        {vouchers.filter((voucher) => voucher.quantity > 0).map((voucher) => (
           <li
             key={voucher.id}
             className="mb-2"

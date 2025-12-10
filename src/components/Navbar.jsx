@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Navbar,
   Nav,
@@ -7,20 +7,14 @@ import {
   FormControl,
   Button,
   Dropdown,
-  Badge,
 } from "react-bootstrap";
-import { Link } from "react-router-dom";
-import {
-  FiUser,
-  FiShoppingCart,
-  FiLogOut,
-  FiSettings
-} from "react-icons/fi";
+import { Link, useNavigate } from "react-router-dom";
+import { FiUser, FiShoppingCart, FiLogOut } from "react-icons/fi";
 import "../style/NavBar.css";
+import { logOut } from "../api/authAPI";
+import { getAllProducts } from "../api/productApi";
 
-import * as cartApi from "../api/cartApi";
-
-// Decode JWT
+// Hàm decode JWT
 const parseJwt = (token) => {
   try {
     const base64Url = token.split(".")[1];
@@ -32,62 +26,71 @@ const parseJwt = (token) => {
         .join("")
     );
     return JSON.parse(jsonPayload);
-  } catch (e) {
+  } catch {
     return null;
   }
 };
 
 function NavBar() {
+  const navigate = useNavigate();
   const [customerName, setCustomerName] = useState(null);
-  const [role, setRole] = useState(null);
-  const [customerId, setCustomerId] = useState(null);
-  const [cartCount, setCartCount] = useState(0);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [suggestions, setSuggestions] = useState([]);
+  const wrapperRef = useRef(null);
 
+  // Lấy tên user từ token
   useEffect(() => {
     const token = localStorage.getItem("accessToken");
-
     if (token) {
       const payload = parseJwt(token);
-
-      if (payload) {
-        setCustomerName(payload.customerName || null);
-        setRole(payload.scope || null);
-        setCustomerId(payload.customerID || null);
-      }
+      if (payload?.customerName) setCustomerName(payload.customerName);
     }
   }, []);
   
 
-  // Load cart khi có customerId
+  // Lấy danh sách gợi ý khi searchTerm thay đổi
   useEffect(() => {
-    if (!customerId) return;
-
-    const fetchCart = async () => {
+    const fetchSuggestions = async () => {
+      if (!searchTerm.trim()) {
+        setSuggestions([]);
+        return;
+      }
       try {
-        const res = await cartApi.getCart(customerId);
-
-        if (!res || !res.items) {
-          setCartCount(0);
-          return;
-        }
-
-        const total = res.items.reduce((sum, item) => sum + item.quantity, 0);
-        setCartCount(total);
+        const allProducts = await getAllProducts();
+        const filtered = allProducts.filter((p) =>
+          p.name.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+        setSuggestions(filtered.slice(0, 5));
       } catch (err) {
-        console.error("Lỗi load cart:", err);
+        console.error(err);
       }
     };
+    fetchSuggestions();
+  }, [searchTerm]);
 
-    fetchCart();
-  }, [customerId]);
+  // Click ngoài để ẩn gợi ý
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (wrapperRef.current && !wrapperRef.current.contains(event.target)) {
+        setSuggestions([]);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
-  // Logout
   const handleLogout = () => {
     localStorage.removeItem("accessToken");
     setCustomerName(null);
-    setRole(null);
-    setCustomerId(null);
-    window.location.href = "/";
+    navigate("/");
+  };
+
+  // Khi chọn sản phẩm trong gợi ý
+  const handleSelectProduct = (product) => {
+    setSearchTerm("");
+    setSuggestions([]);
+    // navigate và truyền object product sang DetailPage
+    navigate(`/product/${product.id}`, { state: { product } });
   };
 
   return (
@@ -99,19 +102,52 @@ function NavBar() {
 
         <Navbar.Toggle aria-controls="basic-navbar-nav" />
         <Navbar.Collapse id="basic-navbar-nav">
-
           {/* Search */}
-          <Form className="d-flex mx-auto my-2 my-lg-0 w-50">
-            <FormControl
-              type="search"
-              placeholder="Tìm kiếm sản phẩm..."
-              className="me-2"
-            />
-          </Form>
+          <div
+            className="mx-auto my-2 my-lg-0 w-50 position-relative"
+            ref={wrapperRef}
+          >
+            <Form className="d-flex">
+              <FormControl
+                type="search"
+                placeholder="Tìm kiếm sản phẩm..."
+                className="me-2"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </Form>
 
+            {suggestions.length > 0 && (
+              <div className="search-suggestions bg-white border shadow-sm position-absolute w-100 mt-1">
+                {suggestions.map((product) => (
+                  <div
+                    key={product.id}
+                    className="d-flex align-items-center px-2 py-1 suggestion-item"
+                    onClick={() => handleSelectProduct(product)}
+                    style={{ cursor: "pointer" }}
+                  >
+                    {product.images?.[0]?.url && (
+                      <img
+                        src={product.images[0].url}
+                        alt={product.name}
+                        style={{
+                          width: "40px",
+                          height: "40px",
+                          objectFit: "cover",
+                          borderRadius: "4px",
+                          marginRight: "8px",
+                        }}
+                      />
+                    )}
+                    <span className="text-truncate">{product.name}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* User & Cart */}
           <Nav className="ms-auto fw-semibold">
-
-            {/* Nếu đã login */}
             {customerName ? (
               <Dropdown align="end">
                 <Dropdown.Toggle
@@ -127,24 +163,12 @@ function NavBar() {
                   <Dropdown.Item as={Link} to="/profile">
                     Thông tin
                   </Dropdown.Item>
-                  <Dropdown.Item as={Link} to="/my-order">
+                  <Dropdown.Item as={Link} to="/orders">
                     Đơn hàng của tôi
                   </Dropdown.Item>
-
-                  {role === "ROLE_ADMIN" && (
-                    <>
-                      <Dropdown.Divider />
-                      <Dropdown.Item as={Link} to="/admin">
-                        <FiSettings className="me-2" />
-                        Quản trị
-                      </Dropdown.Item>
-                    </>
-                  )}
-
                   <Dropdown.Divider />
                   <Dropdown.Item onClick={handleLogout}>
-                    <FiLogOut className="me-2" />
-                    Đăng xuất
+                    <FiLogOut className="me-2" /> Đăng xuất
                   </Dropdown.Item>
                 </Dropdown.Menu>
               </Dropdown>
@@ -154,39 +178,9 @@ function NavBar() {
               </Nav.Link>
             )}
 
-            {/* Giỏ hàng */}
-            <Nav.Link
-              as={Link}
-              to="/cart"
-              className="text-dark mx-2 fs-4 position-relative"
-            >
+            <Nav.Link as={Link} to="/cart" className="text-dark mx-2 fs-4">
               <FiShoppingCart />
-
-              {cartCount > 0 && (
-                <span
-                  style={{
-                    position: "absolute",
-                    top: "8px",
-                    right: "-8px",
-                    background: "red",
-                    color: "white",
-                    fontSize: "0.6rem",
-                    padding: "2px 6px",
-                    minWidth: "18px",
-                    height: "18px",
-                    display: "flex",
-                    justifyContent: "center",
-                    alignItems: "center",
-                    borderRadius: "50%",
-                    fontWeight: "bold",
-                    lineHeight: "1",
-                  }}
-                >
-                  {cartCount}
-                </span>
-              )}
             </Nav.Link>
-
           </Nav>
         </Navbar.Collapse>
       </Container>
